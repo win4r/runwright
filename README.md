@@ -1,5 +1,7 @@
 # Runwright
 
+English | [简体中文](README.zh-CN.md)
+
 **Durable runs, human control, learning and typed workflows for LLM agents — self-hosted, one SQLite file, zero
 runtime dependencies.**
 
