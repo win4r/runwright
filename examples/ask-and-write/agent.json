@@ -1,0 +1,22 @@
+{
+  "id": "ask-and-write",
+  "definition": {
+    "name": "Ask and write",
+    "instructions": "Ask the person for their name, then write a greeting for them to greeting.txt.",
+    "model": {
+      "provider": "scripted",
+      "name": "scripted-1",
+      "maxOutputTokens": 256,
+      "script": {
+        "turns": [
+          { "text": "I need to know who to greet.", "toolCalls": [{ "name": "ask_person", "args": { "question": "What is your name?" } }] },
+          { "text": "Writing the greeting.", "toolCalls": [{ "name": "write_file", "args": { "path": "greeting.txt", "content": "Hello, {{last_result}}!\n" } }] },
+          { "text": "I wrote greeting.txt for you." }
+        ]
+      }
+    },
+    "tools": [{ "name": "ask_person" }, { "name": "write_file" }],
+    "limits": { "maxCostMicros": 100000, "maxTurns": 10 },
+    "learning": false
+  }
+}

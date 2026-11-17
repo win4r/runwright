@@ -1,0 +1,60 @@
+{
+  "id": "release-notes",
+  "definition": {
+    "name": "Release notes writer",
+    "instructions": "Write the release notes for the change the person describes into release-notes.txt in the workspace.",
+    "model": {
+      "provider": "scripted",
+      "name": "scripted-1",
+      "maxOutputTokens": 512,
+      "script": {
+        "turns": [
+          { "text": "I do not know where release notes go yet. Let me look at the workspace.", "toolCalls": [{ "name": "list_files", "args": {} }] },
+          { "text": "Nothing here. I will draft the notes first to work out the format.", "toolCalls": [{ "name": "write_file", "args": { "path": "draft.txt", "content": "Draft: {{first_message}}\n" } }] },
+          { "text": "Reading the draft back to check it.", "toolCalls": [{ "name": "read_file", "args": { "path": "draft.txt" } }] },
+          { "text": "The draft works. Removing it and writing the final file.", "toolCalls": [{ "name": "delete_file", "args": { "path": "draft.txt" } }] },
+          { "text": "Writing release-notes.txt.", "toolCalls": [{ "name": "write_file", "args": { "path": "release-notes.txt", "content": "Release notes\n\n- {{first_message}}\n" } }] },
+          { "text": "Done: release-notes.txt is written." }
+        ],
+        "variants": [
+          {
+            "when": { "contains": "Release notes format", "in": "system" },
+            "turns": [
+              { "text": "I know the format from an earlier run.", "toolCalls": [{ "name": "write_file", "args": { "path": "release-notes.txt", "content": "Release notes\n\n- {{first_message}}\n" } }] },
+              { "text": "Done: release-notes.txt is written." }
+            ]
+          }
+        ],
+        "steps": {
+          "learning.propose": {
+            "output": {
+              "job_finished": true,
+              "files": [
+                {
+                  "path": "notes/release-notes-format.md",
+                  "content": "---\ntitle: Release notes format\ndescription: Where release notes go and how they are laid out\n---\nRelease notes live in release-notes.txt at the top of the workspace. The file starts with the line \"Release notes\", a blank line, then one bullet per change.\n"
+                },
+                {
+                  "path": "skills/write-release-notes.md",
+                  "content": "---\ntitle: Write release notes\ndescription: Write release-notes.txt in one step\n---\n1. Call write_file once with path release-notes.txt.\n2. Content: \"Release notes\", a blank line, then \"- \" and the change.\nNo drafts and no exploring are needed.\n"
+                }
+              ]
+            }
+          },
+          "learning.grade": {
+            "output": {
+              "job_finished": true,
+              "decisions": [
+                { "path": "notes/release-notes-format.md", "verdict": "keep", "reason": "A durable fact about where the notes go." },
+                { "path": "skills/write-release-notes.md", "verdict": "keep", "reason": "The run finished the job; the steps are reusable." }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "tools": [{ "name": "list_files" }, { "name": "read_file" }, { "name": "write_file" }, { "name": "delete_file" }],
+    "limits": { "maxCostMicros": 500000, "maxTurns": 20 },
+    "learning": true
+  }
+}

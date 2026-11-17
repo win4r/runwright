@@ -1,0 +1,25 @@
+# dependencies and build output
+node_modules/
+dist/
+*.tgz
+
+# local data: SQLite stores, tokens, seal keys
+*.db
+*.db-wal
+*.db-shm
+.runwright/
+*.key
+*.pem
+
+# environment and secrets
+.env
+.env.*
+!.env.example
+
+# editors, OS and tooling
+.DS_Store
+.vscode/
+.idea/
+.claude/
+*.log
+coverage/

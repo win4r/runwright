@@ -1,0 +1,50 @@
+{
+  "name": "runwright",
+  "version": "0.1.0",
+  "description": "Durable runs, control, learning and typed workflows around LLM agents",
+  "license": "MIT",
+  "author": "The Runwright authors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/win4r/runwright.git"
+  },
+  "homepage": "https://github.com/win4r/runwright#readme",
+  "bugs": {
+    "url": "https://github.com/win4r/runwright/issues"
+  },
+  "keywords": ["llm", "agents", "ai-agents", "durable-execution", "workflow", "human-in-the-loop", "sqlite", "typescript"],
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "bin": {
+    "runwright": "dist/bin/runwright.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./client": {
+      "types": "./dist/src/client/index.d.ts",
+      "default": "./dist/src/client/index.js"
+    },
+    "./workflow": {
+      "types": "./dist/src/workflow/builder.d.ts",
+      "default": "./dist/src/workflow/builder.js"
+    }
+  },
+  "files": ["dist", "docs", "README.md", "LICENSE"],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --disable-warning=ExperimentalWarning --test --test-timeout=90000 \"test/**/*.test.ts\"",
+    "bench": "node --disable-warning=ExperimentalWarning src/bench/main.ts",
+    "start": "node bin/runwright.ts",
+    "build": "node --disable-warning=ExperimentalWarning scripts/build.ts",
+    "prepack": "npm run build"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2",
+    "@types/node": "^22.18.0"
+  }
+}

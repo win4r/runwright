@@ -1,0 +1,2007 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Runwright</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --text: #1b1f24; --muted: #5d6673; --border: #d9dee5; --accent: #2f5fd0;
+  --accent-text: #ffffff; --ok: #1d7a46; --warn: #9a6200; --bad: #b42318; --soft: #eef1f5; --code: #f1f3f6;
+  --k-tool: #dbe8ff; --k-model: #e8ddff; --k-decide: #ffe9c7; --k-branch: #fde2e2; --k-flow: #e3f4e8;
+  --k-agent: #d8f1f4; --k-wait: #fff3b0; --k-fail: #ffd6d6; --k-call: #e6e6e6; --edge: #8a93a0;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111418; --panel: #191d23; --text: #e5e9ef; --muted: #98a2b0; --border: #2c323b; --accent: #7aa2ff;
+    --accent-text: #0b0e12; --ok: #5ccf8d; --warn: #f0b952; --bad: #ff7b72; --soft: #222831; --code: #20252d;
+    --k-tool: #24365a; --k-model: #3a2d5c; --k-decide: #4d3a17; --k-branch: #4e2626; --k-flow: #1f3d2b;
+    --k-agent: #1b3d42; --k-wait: #4a4314; --k-fail: #5a2222; --k-call: #333840; --edge: #6d7684;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+body { font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 12.5px; }
+pre { background: var(--code); padding: 10px; border-radius: 6px; overflow: auto; max-height: 480px; white-space: pre-wrap; word-break: break-word; margin: 6px 0; }
+header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 2; }
+header.top .brand { font-weight: 700; letter-spacing: .2px; margin-right: 6px; }
+header.top nav { display: flex; gap: 12px; flex-wrap: wrap; }
+header.top nav a.current { font-weight: 600; text-decoration: underline; }
+header.top .spacer { flex: 1; }
+.conn { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+.conn::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; }
+.conn.online::before { background: var(--ok); }
+.conn.offline::before { background: var(--bad); }
+main { padding: 16px; max-width: 1280px; margin: 0 auto; }
+h1 { font-size: 20px; margin: 4px 0 12px; }
+h2 { font-size: 15px; margin: 0 0 8px; }
+h3 { font-size: 14px; margin: 12px 0 6px; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; min-width: 0; margin-bottom: 14px; }
+.grid .panel { margin-bottom: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.empty { color: var(--muted); padding: 8px 0; font-style: italic; }
+.error { color: var(--bad); padding: 6px 0; white-space: pre-wrap; word-break: break-word; }
+.notice { color: var(--ok); padding: 4px 0; }
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); vertical-align: top; word-break: break-word; }
+th { font-weight: 600; color: var(--muted); font-size: 12px; }
+.table-wrap { overflow-x: auto; }
+.badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11.5px; background: var(--soft); border: 1px solid var(--border); white-space: nowrap; }
+.s-completed { color: var(--ok); } .s-failed, .s-cancelled { color: var(--bad); }
+.s-waiting, .s-paused { color: var(--warn); } .s-running, .s-queued { color: var(--accent); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: var(--soft); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+button:hover:not([disabled]) { border-color: var(--accent); }
+button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+button.danger { color: var(--bad); }
+button[disabled] { opacity: .55; cursor: default; }
+input[type=text], input[type=number], input[type=password], select, textarea { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; max-width: 100%; }
+textarea { width: 100%; }
+.row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; }
+.row > input[type=text] { flex: 1; min-width: 140px; }
+.pending { border: 1px solid var(--border); border-left: 3px solid var(--warn); border-radius: 6px; padding: 8px 10px; margin: 8px 0; }
+.pending .head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; word-break: break-word; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+.tabs button { border: none; border-bottom: 2px solid transparent; border-radius: 0; background: none; padding: 6px 10px; }
+.tabs button[aria-selected=true] { border-bottom-color: var(--accent); font-weight: 600; }
+.timeline { max-height: 560px; overflow: auto; }
+.timeline td.summary { white-space: pre-wrap; }
+.timeline tr.streaming td { color: var(--muted); font-style: italic; }
+.t-run { color: var(--accent); } .t-model { color: #7a4fd0; } .t-tool { color: #a85b00; } .t-pending { color: var(--warn); }
+.t-error { color: var(--bad); } .t-learning { color: var(--ok); }
+.chart { width: 100%; max-width: 520px; height: auto; display: block; margin: 4px 0 8px; }
+.chart .bar { fill: var(--accent); } .chart .bar.partial { fill: var(--warn); }
+.chart .axis { stroke: var(--border); } .chart text { fill: var(--muted); font-size: 9px; }
+.graph-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); max-height: 70vh; }
+.graph text { fill: var(--text); font-size: 11.5px; }
+.graph text.kind { fill: var(--muted); font-size: 10px; }
+.graph .gnode { stroke: var(--border); stroke-width: 1; fill: var(--k-call); }
+.graph .k-tool { fill: var(--k-tool); } .graph .k-model { fill: var(--k-model); } .graph .k-decide { fill: var(--k-decide); }
+.graph .k-branch { fill: var(--k-branch); } .graph .k-sequence, .graph .k-parallel, .graph .k-map, .graph .k-loop { fill: var(--k-flow); }
+.graph .k-agent { fill: var(--k-agent); } .graph .k-wait { fill: var(--k-wait); } .graph .k-fail { fill: var(--k-fail); }
+.graph .edge { fill: none; stroke: var(--edge); stroke-width: 1.3; }
+.graph .edge.e-contains, .graph .edge.e-low_confidence, .graph .edge.e-body { stroke-dasharray: 4 3; }
+.graph .edge.e-call { stroke-width: 2.4; }
+.graph .edge.e-low_confidence { stroke: var(--warn); }
+.graph .arrow { fill: var(--edge); }
+.graph text.elabel { fill: var(--muted); font-size: 10px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.login { max-width: 420px; margin: 40px auto; }
+details summary { cursor: pointer; }
+@media (max-width: 760px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  main { padding: 10px; }
+  th, td { padding: 4px 5px; }
+  .hide-narrow { display: none; }
+}
+</style>
+</head>
+<body>
+<header class="top" id="top"></header>
+<main id="main"><noscript>The Runwright console needs JavaScript.</noscript></main>
+<script>
+"use strict";
+(function () {
+  // ---------------------------------------------------------------- DOM builder (the only way the page makes nodes)
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const HTML_ATTRS = new Set([
+    "class", "id", "title", "type", "value", "placeholder", "role", "disabled", "checked", "for", "name", "rows",
+    "colspan", "min", "step", "autocomplete", "spellcheck", "hidden", "selected", "tabindex",
+  ]);
+  const SVG_ATTRS = new Set([
+    "viewBox", "width", "height", "x", "y", "x1", "y1", "x2", "y2", "rx", "ry", "cx", "cy", "r", "d", "points",
+    "text-anchor", "dominant-baseline", "transform", "markerWidth", "markerHeight", "refX", "refY", "orient",
+    "marker-end", "preserveAspectRatio", "xmlns",
+  ]);
+  const DATA_OR_ARIA = /^(data|aria)-[a-z0-9-]+$/;
+
+  function attributeAllowed(name, value, svg) {
+    if (name === "href") return typeof value === "string" && value.startsWith("#/");
+    if (HTML_ATTRS.has(name) || DATA_OR_ARIA.test(name)) return true;
+    return svg && SVG_ATTRS.has(name);
+  }
+
+  function appendChildren(parent, children) {
+    for (const child of children) {
+      if (child === null || child === undefined || child === false) continue;
+      if (Array.isArray(child)) appendChildren(parent, child);
+      else if (typeof child === "string" || typeof child === "number" || typeof child === "boolean") {
+        parent.appendChild(document.createTextNode(String(child)));
+      } else parent.appendChild(child);
+    }
+  }
+
+  /**
+   * h("div", {class: "x", on: {click: fn}}, "text", child) — text always becomes a text node; attributes come
+   * from a whitelist ("href" only for "#/" routes); a tag "svg:rect" makes an SVG element.
+   */
+  function h(tag, attrs, ...children) {
+    const svg = tag.startsWith("svg:");
+    const name = svg ? tag.slice(4) : tag;
+    if (!/^[a-zA-Z][a-zA-Z0-9]*$/.test(name)) throw new Error("bad tag name");
+    const el = svg ? document.createElementNS(SVG_NS, name) : document.createElement(name);
+    if (attrs !== null && attrs !== undefined) {
+      for (const key of Object.keys(attrs)) {
+        const value = attrs[key];
+        if (key === "on") {
+          for (const type of Object.keys(value)) el.addEventListener(type, value[type]);
+          continue;
+        }
+        if (value === null || value === undefined || value === false) continue;
+        if (!attributeAllowed(key, value, svg)) throw new Error("attribute not allowed: " + key);
+        el.setAttribute(key, value === true ? "" : String(value));
+      }
+    }
+    appendChildren(el, children);
+    return el;
+  }
+
+  // ---------------------------------------------------------------- formatting helpers
+  function usd(micros) {
+    const dollars = micros / 1e6;
+    if (dollars === 0) return "$0.00";
+    const abs = Math.abs(dollars);
+    if (abs >= 1) return "$" + dollars.toFixed(2);
+    if (abs >= 0.01) return "$" + dollars.toFixed(4).replace(/0{1,2}$/, "");
+    return "$" + dollars.toFixed(6).replace(/0+$/, "");
+  }
+
+  /** Cost text: "unknown" when nothing is known, "≥ $x" when part of it is unknown; never $0 for an unknown cost. */
+  function formatCost(micros, unknown) {
+    const partly = unknown === true || (typeof unknown === "number" && unknown > 0);
+    if (typeof micros !== "number" || !Number.isFinite(micros)) return "unknown";
+    if (partly) return micros > 0 ? "≥ " + usd(micros) : "unknown";
+    return usd(micros);
+  }
+
+  function microsToUsdInput(micros) {
+    return (micros / 1e6).toFixed(6).replace(/\.?0+$/, "");
+  }
+
+  function usdToMicros(text) {
+    const value = Number(String(text).trim());
+    if (String(text).trim() === "" || !Number.isFinite(value) || value < 0) return null;
+    return Math.round(value * 1e6);
+  }
+
+  function formatNumber(n) {
+    return typeof n === "number" && Number.isFinite(n) ? n.toLocaleString("en-US") : "–";
+  }
+
+  function formatTime(ms) {
+    if (typeof ms !== "number") return "–";
+    const d = new Date(ms);
+    const pad = (n) => String(n).padStart(2, "0");
+    return pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()) + "." + String(d.getMilliseconds()).padStart(3, "0");
+  }
+
+  function formatDate(ms) {
+    if (typeof ms !== "number") return "–";
+    const d = new Date(ms);
+    const pad = (n) => String(n).padStart(2, "0");
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
+  }
+
+  function age(ms, now) {
+    if (typeof ms !== "number") return "–";
+    const s = Math.max(0, Math.round(((now === undefined ? Date.now() : now) - ms) / 1000));
+    if (s < 60) return s + "s ago";
+    if (s < 3600) return Math.floor(s / 60) + "m ago";
+    if (s < 86400) return Math.floor(s / 3600) + "h ago";
+    return Math.floor(s / 86400) + "d ago";
+  }
+
+  function formatDuration(ms) {
+    if (typeof ms !== "number" || !Number.isFinite(ms)) return "–";
+    if (ms < 1000) return Math.round(ms) + " ms";
+    if (ms < 60000) return (ms / 1000).toFixed(1) + " s";
+    return (ms / 60000).toFixed(1) + " min";
+  }
+
+  function excerpt(value, max) {
+    const limit = max === undefined ? 160 : max;
+    const text = typeof value === "string" ? value : value === undefined ? "" : JSON.stringify(value);
+    const flat = String(text).replace(/\s+/g, " ").trim();
+    return flat.length > limit ? flat.slice(0, limit - 1) + "…" : flat;
+  }
+
+  function pretty(value) {
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch (error) {
+      return String(value);
+    }
+  }
+
+  function str(value, fallback) {
+    return typeof value === "string" ? value : value === null || value === undefined ? (fallback === undefined ? "" : fallback) : String(value);
+  }
+
+  function obj(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value) ? value : {};
+  }
+
+  function arr(value) {
+    return Array.isArray(value) ? value : [];
+  }
+
+  function describeLimits(limits) {
+    const l = obj(limits);
+    const parts = [];
+    parts.push("cost cap " + (typeof l.maxCostMicros === "number" ? usd(l.maxCostMicros) : "none"));
+    parts.push("tool calls " + (typeof l.maxToolCalls === "number" ? l.maxToolCalls : "no limit"));
+    parts.push("turns " + (typeof l.maxTurns === "number" ? l.maxTurns : "no limit"));
+    if (l.allowUnpriced === true) parts.push("unpriced models allowed");
+    return parts.join(", ");
+  }
+
+  function describeCommand(command) {
+    const c = obj(command);
+    switch (c.type) {
+      case "message": return "message: " + excerpt(c.text);
+      case "answer": return "answer to " + str(c.pendingId) + ": " + excerpt(c.answer);
+      case "approve": return "approve " + str(c.pendingId) + (c.always === true ? " (always for this run)" : "");
+      case "deny": return "deny " + str(c.pendingId) + (typeof c.reason === "string" ? ": " + excerpt(c.reason) : "");
+      case "limits": return "limits: " + excerpt(c.limits);
+      case "resolve_interrupted": return "resolve " + str(c.pendingId) + ": " + str(c.action) + (typeof c.result === "string" ? " with " + excerpt(c.result, 80) : "");
+      case "cancel": return "cancel" + (typeof c.reason === "string" ? ": " + excerpt(c.reason) : "");
+      case "pause": return "pause";
+      case "resume": return "resume";
+      default: return excerpt(c);
+    }
+  }
+
+  /** " by a pause" etc. for the reason of an interrupted tool call; "" for a record that carries none. */
+  function interruptedBy(reason) {
+    switch (reason) {
+      case "pause": return " by a pause";
+      case "shutdown": return " by a forced shutdown";
+      case "crash": return " by a crash";
+      default: return "";
+    }
+  }
+
+  /**
+   * Records after which no more live text of the current attempt arrives for their step key, so its streaming row
+   * is cleared: the records that end a call, and model.retry, which ends a failed attempt (the next attempt's text
+   * starts a fresh row).
+   */
+  const STREAM_END_TYPES = new Set(["model.invalid", "model.finished", "model.interrupted", "model.failed", "model.retry"]);
+  function endsStream(type) {
+    return STREAM_END_TYPES.has(str(type));
+  }
+
+  /** ", attempt n" for a provider attempt after the first; "" for attempt 1 and for records without the field. */
+  function attemptSuffix(attempt) {
+    return typeof attempt === "number" && Number.isFinite(attempt) && attempt > 1 ? ", attempt " + attempt : "";
+  }
+
+  /**
+   * What a failed provider attempt was charged: nothing when billing is "none", the assumed worst case when it is
+   * "unknown" (null: an unpriced model), and "" for a record written without the field or with an unknown value.
+   */
+  function attemptCharge(billing, assumedCostMicros) {
+    switch (billing) {
+      case "none": return "not charged";
+      case "unknown": return "charged " + formatCost(assumedCostMicros, assumedCostMicros === null || assumedCostMicros === undefined) + " (assumed)";
+      default: return "";
+    }
+  }
+
+  function describeRetry(d) {
+    const cause = typeof d.status === "number" ? "status " + d.status : str(d.code);
+    const charge = attemptCharge(d.billing, d.assumedCostMicros);
+    return "attempt " + str(d.attempt) + " failed (" + cause + ")" + (charge === "" ? "" : ", " + charge) +
+      "; next attempt in " + formatDuration(d.delayMs) + ": " + excerpt(d.message);
+  }
+
+  function describeFailed(d) {
+    const attempts = typeof d.attempts === "number" && Number.isFinite(d.attempts) ? " after " + d.attempts + " attempt" + (d.attempts === 1 ? "" : "s") : "";
+    const charge = Object.hasOwn(d, "assumedCostMicros") ? ", charged " + formatCost(d.assumedCostMicros, d.assumedCostMicros === null) + " (assumed)" : "";
+    return str(d.model) + " failed" + attempts + charge + ": " + str(obj(d.error).code) + ": " + str(obj(d.error).message);
+  }
+
+  /** The Learning tab's line for a promoted skill: the workflow and, when recorded, the version it was promoted to. */
+  function promotedWorkflowLine(item) {
+    const i = obj(item);
+    if (typeof i.promotedWorkflow !== "string" || i.promotedWorkflow === "") return null;
+    const version = typeof i.promotedWorkflowVersion === "number" && Number.isFinite(i.promotedWorkflowVersion) ? i.promotedWorkflowVersion : null;
+    return h("p", null, "Promoted to workflow ",
+      h("a", { href: "#/workflows/" + enc(i.promotedWorkflow) }, version === null ? i.promotedWorkflow : i.promotedWorkflow + " v" + version));
+  }
+
+  function describeToolCalls(calls) {
+    return arr(calls).map((call) => str(obj(call).name, "?") + "(" + excerpt(obj(call).args, 80) + ")").join(", ");
+  }
+
+  /** One readable line (or a few) for a journal record. */
+  function summarize(record) {
+    const r = obj(record);
+    const d = obj(r.data);
+    try {
+      switch (r.type) {
+        case "run.created": return "agent " + str(d.agentId) + " r" + str(d.revision) + (obj(d.input).message ? "; message: " + excerpt(obj(d.input).message) : "") + "; " + describeLimits(d.limits);
+        case "run.claimed": return "claimed by runner " + str(d.runnerId);
+        case "command.applied": return describeCommand(d.command);
+        case "command.rejected": return describeCommand(d.command) + " — rejected: " + str(d.reason);
+        case "limits.changed": return describeLimits(d.limits);
+        case "inbox.taken": {
+          const messages = arr(d.messages);
+          return messages.length + " message(s)" + (messages.length > 0 ? ": " + messages.map((m) => excerpt(obj(m).text, 80)).join(" | ") : "");
+        }
+        case "model.started": return str(d.model) + " (" + str(d.purpose) + ")" + (d.repair === true ? " repair" : "") +
+          (d.countsAsTurn === true ? ", turn " + str(d.turn) : "") + attemptSuffix(d.attempt) +
+          ", ~" + formatNumber(d.inputTokensEstimate) + " tokens in, ≤ " + formatNumber(d.maxOutputTokens) + " out, worst case " +
+          formatCost(d.worstCaseMicros, d.worstCaseMicros === null);
+        case "model.invalid": {
+          const u = obj(d.usage);
+          const problems = arr(d.problems);
+          const first = obj(problems[0]);
+          return str(d.model) + ": output invalid, " + problems.length + " schema problem(s)" +
+            (problems.length > 0 ? ", first " + str(first.path) + ": " + excerpt(first.message, 200) : "") + "\n" +
+            formatNumber(u.inputTokens) + " in / " + formatNumber(u.outputTokens) + " out, " + formatCost(d.costMicros, d.costMicros === null) +
+            ", " + formatDuration(d.durationMs) + "; repair follows";
+        }
+        case "model.finished": {
+          const u = obj(d.usage);
+          const parts = [];
+          if (str(d.text) !== "") parts.push(excerpt(d.text, 400));
+          if (arr(d.toolCalls).length > 0) parts.push("calls " + describeToolCalls(d.toolCalls));
+          if (d.output !== null && d.output !== undefined) parts.push("output " + excerpt(d.output, 200));
+          parts.push(formatNumber(u.inputTokens) + " in / " + formatNumber(u.outputTokens) + " out, " + formatCost(d.costMicros, d.costMicros === null) +
+            ", " + formatDuration(d.durationMs) + ", stop " + str(d.stopReason));
+          return parts.join("\n");
+        }
+        case "model.interrupted": return str(d.model) + " interrupted (" + str(d.reason) + "), charged " + formatCost(d.assumedCostMicros, d.assumedCostMicros === null) + " (assumed)";
+        case "model.failed": return describeFailed(d);
+        case "model.retry": return describeRetry(d);
+        case "message.undelivered": return "message " + str(d.commandId) + " not delivered: " + str(d.reason);
+        case "tool.started": return str(d.tool) + "(" + excerpt(d.args, 200) + ") — " + str(d.effect) + ", attempt " + str(d.attempt);
+        case "tool.finished": {
+          const flags = [];
+          if (d.isError === true) flags.push("error");
+          if (d.truncated === true) flags.push("truncated" + (typeof d.fullResultPath === "string" ? ", full result in " + d.fullResultPath : ""));
+          if (d.untrusted === true) flags.push("untrusted");
+          return str(d.tool) + " → " + str(d.outcome) + (flags.length > 0 ? " [" + flags.join("; ") + "]" : "") + ": " + excerpt(d.content, 300) +
+            (typeof d.durationMs === "number" ? " (" + formatDuration(d.durationMs) + ")" : "");
+        }
+        case "tool.interrupted": return str(d.tool) + "(" + excerpt(d.args, 120) + ") interrupted" + interruptedBy(d.reason) + " at attempt " + str(d.attempt) + "; waiting for a decision";
+        case "pending.opened": { const p = obj(d.pending); return "needs you — " + str(p.kind) + ": " + str(p.title); }
+        case "pending.resolved": return str(d.kind) + " resolved: " + excerpt(d.resolution, 200);
+        case "step.started": case "node.started": return str(d.name) + (typeof d.kind === "string" ? " (" + d.kind + ")" : "");
+        case "step.finished": case "node.finished": return str(d.name) + " → " + excerpt(d.value, 300);
+        case "node.retry": return "node " + str(d.nodeId) + " retry " + str(d.attempt) + " in " + formatDuration(d.delayMs) + ": " + str(obj(d.error).message);
+        case "context.compacted": return "compacted through turn " + str(d.throughTurn) + ": " + formatNumber(d.tokensBefore) + " → " + formatNumber(d.tokensAfter) + " tokens";
+        case "learning.given": { const items = arr(d.items); return items.length + " learning item(s) given" + (items.length > 0 ? ": " + items.map((i) => str(obj(i).kind) + " " + str(obj(i).name) + " v" + str(obj(i).version)).join(", ") : ""); }
+        case "learning.checked": return d.dropAll !== null && d.dropAll !== undefined ? "whole proposal dropped: " + str(d.dropAll)
+          : arr(d.surviving).length + " item(s) passed checks, " + arr(d.dropped).length + " dropped" + (arr(d.dropped).length > 0 ? ": " + arr(d.dropped).map((x) => str(obj(x).path) + " (" + str(obj(x).reason) + ")").join(", ") : "");
+        case "learning.graded": return arr(d.decisions).map((x) => str(obj(x).path) + " " + str(obj(x).verdict) + " by " + str(obj(x).by) + ": " + excerpt(obj(x).reason, 80)).join("\n") || "nothing graded";
+        case "learning.applied": return arr(d.kept).length + " kept, " + arr(d.held).length + " held for a person" +
+          (arr(d.conflicts).length > 0 ? ", " + arr(d.conflicts).length + " not written (changed since checked): " +
+            arr(d.conflicts).map((x) => str(obj(x).path) + " (" + excerpt(obj(x).reason, 80) + ")").join(", ") : "");
+        case "learning.skipped": return "learning skipped: " + str(d.reason);
+        case "learning.promotion": return "promotion of " + str(d.itemId) + ": " + str(d.outcome) + (typeof d.workflow === "string" ? " → workflow " + d.workflow : "") + (arr(d.problems).length > 0 ? "; " + arr(d.problems).join("; ") : "");
+        case "run.output": return "output: " + excerpt(d.output, 400);
+        case "run.waiting": return "waiting on " + arr(d.pendingIds).join(", ");
+        case "run.paused": return "paused";
+        case "run.released": return "released: " + str(d.reason);
+        case "run.completed": return "completed: " + excerpt(d.output, 400);
+        case "run.failed": return "failed: " + str(obj(d.error).code) + ": " + str(obj(d.error).message);
+        case "run.cancelled": return "cancelled" + (typeof d.reason === "string" ? ": " + d.reason : "");
+        default: return excerpt(d, 300);
+      }
+    } catch (error) {
+      return excerpt(d, 300);
+    }
+  }
+
+  function typeClass(type) {
+    const t = str(type);
+    if (t === "run.failed" || t === "model.failed" || t === "model.invalid" || t === "tool.interrupted" || t === "command.rejected") return "t-error";
+    if (t.startsWith("model.")) return "t-model";
+    if (t.startsWith("tool.")) return "t-tool";
+    if (t.startsWith("pending.")) return "t-pending";
+    if (t.startsWith("learning.")) return "t-learning";
+    return "t-run";
+  }
+
+  // ---------------------------------------------------------------- Server-Sent Events parser (incremental)
+  /** push(text) returns the events completed by that text: {event, data, id (null when the event had none)}. */
+  function createSseParser() {
+    let buffer = "";
+    let data = [];
+    let eventType = "";
+    let id = null;
+    let lastEventId = null;
+    const dispatch = (out) => {
+      if (data.length > 0) out.push({ event: eventType === "" ? "message" : eventType, data: data.join("\n"), id });
+      data = [];
+      eventType = "";
+      id = null;
+    };
+    const line = (text, out) => {
+      if (text === "") {
+        dispatch(out);
+        return;
+      }
+      if (text.startsWith(":")) return;
+      const colon = text.indexOf(":");
+      const field = colon < 0 ? text : text.slice(0, colon);
+      let value = colon < 0 ? "" : text.slice(colon + 1);
+      if (value.startsWith(" ")) value = value.slice(1);
+      if (field === "data") data.push(value);
+      else if (field === "event") eventType = value;
+      else if (field === "id" && !value.includes("\u0000")) {
+        id = value;
+        lastEventId = value;
+      }
+    };
+    return {
+      push(text) {
+        buffer += text;
+        const out = [];
+        let start = 0;
+        for (let i = 0; i < buffer.length; i++) {
+          const ch = buffer[i];
+          if (ch !== "\n" && ch !== "\r") continue;
+          if (ch === "\r" && i === buffer.length - 1) break;
+          line(buffer.slice(start, i), out);
+          if (ch === "\r" && buffer[i + 1] === "\n") i++;
+          start = i + 1;
+        }
+        buffer = buffer.slice(start);
+        return out;
+      },
+      lastEventId() {
+        return lastEventId;
+      },
+    };
+  }
+
+  /** The same parser fed with bytes: multi-byte characters split across chunks are decoded correctly. */
+  function createSseDecoder() {
+    const decoder = new TextDecoder("utf-8");
+    const parser = createSseParser();
+    return {
+      push(bytes) {
+        return parser.push(decoder.decode(bytes, { stream: true }));
+      },
+      lastEventId: parser.lastEventId,
+    };
+  }
+
+  function parseSse(text) {
+    return createSseParser().push(text);
+  }
+
+  // ---------------------------------------------------------------- workflow graph layout
+  const NODE_W = 196;
+  const NODE_H = 48;
+  const GAP_X = 26;
+  const GAP_Y = 58;
+  const PAD = 18;
+
+  /**
+   * Layers by longest path from the roots (so every edge points to a deeper layer when the graph has no cycle);
+   * siblings spread horizontally, ordered by the mean x of their predecessors.
+   */
+  function layoutGraph(graph) {
+    const g = obj(graph);
+    const order = new Map();
+    const nodes = [];
+    for (const node of arr(g.nodes)) {
+      const id = str(obj(node).id);
+      if (order.has(id)) continue;
+      order.set(id, nodes.length);
+      nodes.push({ id, kind: str(obj(node).kind), label: str(obj(node).label, id) });
+    }
+    const edges = arr(g.edges).map((e) => obj(e)).map((e) => ({ from: str(e.from), to: str(e.to), kind: str(e.kind), label: typeof e.label === "string" ? e.label : null }))
+      .filter((e) => order.has(e.from) && order.has(e.to) && e.from !== e.to);
+    const outgoing = new Map(nodes.map((n) => [n.id, []]));
+    const incoming = new Map(nodes.map((n) => [n.id, []]));
+    for (const e of edges) {
+      outgoing.get(e.from).push(e.to);
+      incoming.get(e.to).push(e.from);
+    }
+    const layer = new Map(nodes.map((n) => [n.id, 0]));
+    const remaining = new Map(nodes.map((n) => [n.id, incoming.get(n.id).length]));
+    const done = new Set();
+    const queue = nodes.filter((n) => remaining.get(n.id) === 0).map((n) => n.id);
+    const relax = (id) => {
+      done.add(id);
+      for (const next of outgoing.get(id)) {
+        if (done.has(next)) continue;
+        layer.set(next, Math.max(layer.get(next), layer.get(id) + 1));
+        remaining.set(next, remaining.get(next) - 1);
+        if (remaining.get(next) === 0) queue.push(next);
+      }
+    };
+    while (queue.length > 0 || done.size < nodes.length) {
+      if (queue.length === 0) {
+        const stuck = nodes.find((n) => !done.has(n.id));
+        remaining.set(stuck.id, 0);
+        queue.push(stuck.id);
+      }
+      const id = queue.shift();
+      if (!done.has(id)) relax(id);
+    }
+    const layers = [];
+    for (const n of nodes) {
+      const l = layer.get(n.id);
+      while (layers.length <= l) layers.push([]);
+      layers[l].push(n);
+    }
+    const widest = layers.reduce((m, row) => Math.max(m, row.length), 0);
+    const width = PAD * 2 + widest * NODE_W + Math.max(0, widest - 1) * GAP_X;
+    const placed = new Map();
+    layers.forEach((row, l) => {
+      const key = (n) => {
+        const xs = incoming.get(n.id).filter((p) => placed.has(p)).map((p) => placed.get(p).x);
+        return xs.length === 0 ? Number.POSITIVE_INFINITY : xs.reduce((a, b) => a + b, 0) / xs.length;
+      };
+      const keyed = row.map((n) => ({ n, k: key(n), i: order.get(n.id) }));
+      keyed.sort((a, b) => (a.k === b.k ? a.i - b.i : a.k === Number.POSITIVE_INFINITY ? 1 : b.k === Number.POSITIVE_INFINITY ? -1 : a.k - b.k));
+      const rowWidth = keyed.length * NODE_W + Math.max(0, keyed.length - 1) * GAP_X;
+      const offset = (width - rowWidth) / 2;
+      keyed.forEach((entry, i) => {
+        placed.set(entry.n.id, { id: entry.n.id, kind: entry.n.kind, label: entry.n.label, layer: l, x: offset + i * (NODE_W + GAP_X), y: PAD + l * (NODE_H + GAP_Y), width: NODE_W, height: NODE_H });
+      });
+    });
+    const laidNodes = nodes.map((n) => placed.get(n.id));
+    const laidEdges = edges.map((e) => {
+      const a = placed.get(e.from);
+      const b = placed.get(e.to);
+      return { from: e.from, to: e.to, kind: e.kind, label: e.label, x1: a.x + NODE_W / 2, y1: a.y + NODE_H, x2: b.x + NODE_W / 2, y2: b.y };
+    });
+    const height = PAD * 2 + layers.length * NODE_H + Math.max(0, layers.length - 1) * GAP_Y;
+    return { nodes: laidNodes, edges: laidEdges, width: Math.max(width, 2 * PAD), height: Math.max(height, 2 * PAD) };
+  }
+
+  // ---------------------------------------------------------------- the browser app (runs only after the page loads)
+  const TOKEN_KEY = "runwright.token";
+  const TOKEN_FRAGMENT = "#token=";
+  const REFRESH_MS = 5000;
+  const TEXT_PREVIEW_BYTES = 200 * 1024;
+  const RUN_STATUSES = ["queued", "running", "waiting", "paused", "completed", "failed", "cancelled"];
+  const app = { token: null, view: null, connection: "unknown", top: null, main: null };
+
+  class ApiError extends Error {
+    constructor(status, code, message, details) {
+      super(message);
+      this.status = status;
+      this.code = code;
+      this.details = details;
+    }
+  }
+
+  function readToken() {
+    try {
+      return sessionStorage.getItem(TOKEN_KEY);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function storeToken(token) {
+    app.token = token;
+    try {
+      if (token === null) sessionStorage.removeItem(TOKEN_KEY);
+      else sessionStorage.setItem(TOKEN_KEY, token);
+    } catch (error) {
+      return;
+    }
+  }
+
+  function setConnection(state) {
+    if (app.connection === state) return;
+    app.connection = state;
+    renderTop();
+  }
+
+  function signOut(message) {
+    storeToken(null);
+    setConnection("signed out");
+    showLogin(message);
+  }
+
+  function enc(value) {
+    return encodeURIComponent(String(value));
+  }
+
+  function query(params) {
+    const search = new URLSearchParams();
+    for (const key of Object.keys(params)) {
+      const value = params[key];
+      if (value !== undefined && value !== null && value !== "") search.set(key, String(value));
+    }
+    const text = search.toString();
+    return text === "" ? "" : "?" + text;
+  }
+
+  /** Every request: same origin, under /v1/, the token only in the Authorization header. */
+  async function api(method, path, options) {
+    const opts = options || {};
+    if (!path.startsWith("/v1/")) throw new Error("the console only calls /v1/");
+    const headers = { Authorization: "Bearer " + str(app.token) };
+    if (opts.headers) Object.assign(headers, opts.headers);
+    const init = { method, headers, cache: "no-store", credentials: "omit", redirect: "error" };
+    if (method !== "GET") {
+      headers["Content-Type"] = "application/json";
+      init.body = JSON.stringify(opts.body === undefined ? {} : opts.body);
+    }
+    if (opts.signal) init.signal = opts.signal;
+    let res;
+    try {
+      res = await fetch(path, init);
+    } catch (error) {
+      if (opts.signal && opts.signal.aborted) throw error;
+      setConnection("offline");
+      throw new ApiError(0, "network", "cannot reach the server");
+    }
+    setConnection("online");
+    if (res.status === 401) {
+      signOut("The server did not accept the token. Sign in again.");
+      throw new ApiError(401, "unauthorized", "a valid bearer token is required");
+    }
+    if (opts.raw && res.ok) return res;
+    const text = await res.text();
+    let data = null;
+    if (text !== "") {
+      try {
+        data = JSON.parse(text);
+      } catch (error) {
+        data = null;
+      }
+    }
+    if (!res.ok) {
+      const err = obj(obj(data).error);
+      throw new ApiError(res.status, str(err.code, "http_" + res.status), str(err.message, "request failed with status " + res.status), err.details);
+    }
+    return { status: res.status, data: obj(data), headers: res.headers };
+  }
+
+  // ---------------------------------------------------------------- small UI pieces
+  function mount(target, ...nodes) {
+    while (target.firstChild) target.removeChild(target.firstChild);
+    appendChildren(target, nodes);
+  }
+
+  function empty(text) {
+    return h("div", { class: "empty" }, text);
+  }
+
+  function errorBox(error) {
+    const e = error instanceof ApiError ? error : null;
+    const lines = [e ? e.message + " (" + e.code + ")" : str(error && error.message, String(error))];
+    const problems = e ? arr(obj(e.details).problems) : [];
+    for (const p of problems.slice(0, 20)) lines.push(str(obj(p).path) + ": " + str(obj(p).message));
+    return h("div", { class: "error", role: "alert" }, lines.join("\n"));
+  }
+
+  function statusBadge(status) {
+    return h("span", { class: "badge s-" + str(status).replace(/[^a-z]/g, "") }, str(status));
+  }
+
+  function runLink(id) {
+    return h("a", { href: "#/runs/" + enc(id), class: "mono" }, str(id));
+  }
+
+  function agentLink(id) {
+    return h("a", { href: "#/agents/" + enc(id) }, str(id));
+  }
+
+  function table(headers, rows, emptyText) {
+    if (rows.length === 0) return empty(emptyText);
+    return h("div", { class: "table-wrap" }, h("table", null,
+      h("thead", null, h("tr", null, headers.map((x) => h("th", null, x)))),
+      h("tbody", null, rows.map((cells) => h("tr", null, cells.map((c) => h("td", null, c)))))));
+  }
+
+  function kv(pairs) {
+    return h("dl", { class: "kv" }, pairs.map(([k, v]) => [h("dt", null, k), h("dd", null, v)]));
+  }
+
+  /** Runs `fn` with the button disabled; shows an error (or a notice) in `status`. */
+  async function act(button, status, fn) {
+    button.disabled = true;
+    mount(status);
+    try {
+      const message = await fn();
+      if (typeof message === "string") mount(status, h("span", { class: "notice" }, message));
+    } catch (error) {
+      mount(status, errorBox(error));
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  function sleep(ms, signal) {
+    return new Promise((resolve) => {
+      const timer = setTimeout(resolve, ms);
+      if (signal) signal.addEventListener("abort", () => {
+        clearTimeout(timer);
+        resolve();
+      }, { once: true });
+    });
+  }
+
+  function costOfRun(run) {
+    const u = obj(obj(run).usage);
+    return formatCost(u.costMicros, u.costUnknown === true);
+  }
+
+  // ---------------------------------------------------------------- pendings ("what needs you")
+  function pendingDetail(p) {
+    const d = obj(p.detail);
+    switch (p.kind) {
+      case "question":
+        return h("div", null, h("div", null, str(d.question)),
+          arr(d.choices).length > 0 ? h("div", { class: "muted small" }, "Choices: " + arr(d.choices).map((c) => str(c)).join(", ")) : null);
+      case "approval":
+        return h("div", null, "Tool ", h("code", null, str(d.tool)), h("pre", null, pretty(d.args)));
+      case "spend_cap":
+        return h("div", { class: "small" }, d.reason === "unknown_price"
+          ? "The model " + str(d.model) + " has no known price, so its cost counts as over the cap. Allow unpriced models for this run, or raise the cap."
+          : "Spent " + formatCost(d.spentMicros, false) + " of a " + formatCost(d.capMicros, false) + " cap; the next call to " + str(d.model) +
+            " could cost up to " + formatCost(d.nextCallWorstCaseMicros, d.nextCallWorstCaseMicros === null) + ". Needs at least " +
+            formatCost(d.neededMicros, d.neededMicros === null) + " more.");
+      case "tool_budget":
+        return h("div", { class: "small" }, "Used " + str(d.used) + " of " + str(d.limit) + " tool calls; needs " + str(d.needed, "1") + " more.");
+      case "turn_limit":
+        return h("div", { class: "small" }, "Used " + str(d.used) + " of " + str(d.limit) + " turns; needs " + str(d.needed, "1") + " more.");
+      case "interrupted":
+        return h("div", null, "Tool ", h("code", null, str(d.tool)), " was interrupted" + interruptedBy(d.reason) + " at attempt " + str(d.attempt) +
+          ". It may or may not have taken effect: retry it, skip it with a result, or cancel the run.", h("pre", null, pretty(d.args)));
+      default:
+        return h("pre", null, pretty(d));
+    }
+  }
+
+  function pendingControls(p, after) {
+    const status = h("div");
+    const holder = h("div");
+    const d = obj(p.detail);
+    const base = "/v1/pendings/" + enc(p.id);
+    const send = (button, path, body) => act(button, status, async () => {
+      await api("POST", path, { body });
+      mount(holder);
+      setTimeout(after, 800);
+      return "Sent; a runner applies it shortly.";
+    });
+    let controls;
+    if (p.kind === "question") {
+      const input = h("input", { type: "text", placeholder: "Your answer", "aria-label": "Answer" });
+      const button = h("button", { type: "submit", class: "primary" }, "Answer");
+      const choices = arr(d.choices).map((choice) => {
+        const b = h("button", { type: "button", on: { click: () => send(b, base + "/answer", { answer: str(choice) }) } }, str(choice));
+        return b;
+      });
+      controls = h("form", { class: "row", on: { submit: (e) => {
+        e.preventDefault();
+        send(button, base + "/answer", { answer: input.value });
+      } } }, choices, input, button);
+    } else if (p.kind === "approval") {
+      const approve = h("button", { type: "button", class: "primary", on: { click: () => send(approve, base + "/approve", { always: false }) } }, "Approve");
+      const always = h("button", { type: "button", on: { click: () => send(always, base + "/approve", { always: true }) } }, "Approve always for this run");
+      const reason = h("input", { type: "text", placeholder: "Reason (optional, the model sees it)", "aria-label": "Deny reason" });
+      const deny = h("button", { type: "button", class: "danger", on: { click: () => send(deny, base + "/deny", reason.value.trim() === "" ? {} : { reason: reason.value }) } }, "Deny");
+      controls = h("div", { class: "row" }, approve, always, reason, deny);
+    } else if (p.kind === "spend_cap") {
+      const cap = typeof d.capMicros === "number" ? d.capMicros : 0;
+      const needed = typeof d.neededMicros === "number" ? d.neededMicros : 0;
+      const input = h("input", { type: "number", min: "0", step: "any", value: microsToUsdInput(cap + needed), "aria-label": "New cost cap in US dollars" });
+      const unpriced = h("input", { type: "checkbox", id: "unpriced-" + p.id, checked: d.reason === "unknown_price" });
+      const button = h("button", { type: "submit", class: "primary" }, "Raise cap");
+      controls = h("form", { class: "row", on: { submit: (e) => {
+        e.preventDefault();
+        const body = {};
+        const micros = usdToMicros(input.value);
+        if (micros !== null && micros !== cap) body.maxCostMicros = micros;
+        if (unpriced.checked) body.allowUnpriced = true;
+        if (Object.keys(body).length === 0) {
+          mount(status, h("div", { class: "error" }, "Give a cap in dollars, or allow unpriced models."));
+          return;
+        }
+        send(button, "/v1/runs/" + enc(p.runId) + "/limits", body);
+      } } }, "New cap $", input, h("label", { for: "unpriced-" + p.id }, unpriced, " allow unpriced models"), button);
+    } else if (p.kind === "tool_budget" || p.kind === "turn_limit") {
+      const field = p.kind === "tool_budget" ? "maxToolCalls" : "maxTurns";
+      const suggested = (typeof d.limit === "number" ? d.limit : 0) + (typeof d.needed === "number" ? d.needed : 1);
+      const input = h("input", { type: "number", min: "0", step: "1", value: String(suggested), "aria-label": p.kind === "tool_budget" ? "New tool-call limit" : "New turn limit" });
+      const button = h("button", { type: "submit", class: "primary" }, "Raise limit");
+      controls = h("form", { class: "row", on: { submit: (e) => {
+        e.preventDefault();
+        const value = Number(input.value);
+        if (!Number.isInteger(value) || value < 0) {
+          mount(status, h("div", { class: "error" }, "Give a whole number."));
+          return;
+        }
+        send(button, "/v1/runs/" + enc(p.runId) + "/limits", { [field]: value });
+      } } }, p.kind === "tool_budget" ? "Tool calls " : "Turns ", input, button);
+    } else if (p.kind === "interrupted") {
+      const retry = h("button", { type: "button", class: "primary", on: { click: () => send(retry, base + "/resolve", { action: "retry" }) } }, "Retry");
+      const result = h("input", { type: "text", placeholder: "Result to use instead", "aria-label": "Skip result" });
+      const skip = h("button", { type: "button", on: { click: () => send(skip, base + "/resolve", { action: "skip", result: result.value }) } }, "Skip");
+      const cancel = h("button", { type: "button", class: "danger", on: { click: () => send(cancel, base + "/resolve", { action: "cancel" }) } }, "Cancel run");
+      controls = h("div", { class: "row" }, retry, result, skip, cancel);
+    } else {
+      controls = null;
+    }
+    appendChildren(holder, [controls]);
+    return h("div", null, holder, status);
+  }
+
+  function pendingCard(p, after, showRun) {
+    return h("div", { class: "pending", "data-pending": p.id },
+      h("div", { class: "head" }, h("span", { class: "badge" }, str(p.kind)), h("strong", null, str(p.title))),
+      h("div", { class: "muted small" }, showRun ? ["run ", runLink(p.runId), " · agent ", agentLink(p.agentId), " · "] : null, "opened " + age(p.createdAt)),
+      pendingDetail(p), pendingControls(p, after));
+  }
+
+  /** Retire / Restore / Approve with the item's ETag; a 412 reloads. */
+  function learningActions(item, after) {
+    const status = h("div");
+    const change = (button, action) => act(button, status, async () => {
+      try {
+        await api("POST", "/v1/learning/" + enc(item.id) + "/" + action, { headers: { "If-Match": "\"" + str(item.etag) + "\"" } });
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 412) {
+          setTimeout(after, 1500);
+          throw new ApiError(412, error.code, "The item changed since it was loaded; reloading it. Try again.");
+        }
+        throw error;
+      }
+      after();
+      return "Done.";
+    });
+    const buttons = [];
+    if (item.status === "held") {
+      const approve = h("button", { type: "button", class: "primary", on: { click: () => change(approve, "approve") } }, "Approve");
+      buttons.push(approve);
+    }
+    if (item.status === "active" || item.status === "held") {
+      const retire = h("button", { type: "button", class: "danger", on: { click: () => change(retire, "retire") } }, "Retire");
+      buttons.push(retire);
+    }
+    if (item.status === "retired") {
+      const restore = h("button", { type: "button", on: { click: () => change(restore, "restore") } }, "Restore");
+      buttons.push(restore);
+    }
+    return h("div", null, h("div", { class: "row" }, buttons), status);
+  }
+
+  // ---------------------------------------------------------------- view lifecycle and router
+  function newView() {
+    const view = { alive: true, cleanups: [], controller: new AbortController() };
+    view.every = (ms, fn) => {
+      const timer = setInterval(() => {
+        if (view.alive) fn();
+      }, ms);
+      view.cleanups.push(() => clearInterval(timer));
+    };
+    view.cleanups.push(() => view.controller.abort());
+    return view;
+  }
+
+  /**
+   * A ticket per (re)start of a loader: `begin()` aborts the previous ticket's request and returns
+   * `{signal, current(), done()}`; `current()` is true only while the view is alive and no newer `begin()`
+   * happened. After every await a loader returns without touching the DOM, a cursor or any shared variable
+   * unless `current()`. `busy()` is true while the newest ticket has not called `done()`, so a timer tick can
+   * leave a slow load alone instead of aborting it again and again.
+   */
+  function latestOnly(view) {
+    let controller = null;
+    let generation = 0;
+    let finished = true;
+    view.cleanups.push(() => {
+      if (controller !== null) controller.abort();
+    });
+    return {
+      begin() {
+        if (controller !== null) controller.abort();
+        generation += 1;
+        const mine = generation;
+        const own = new AbortController();
+        controller = own;
+        finished = false;
+        if (!view.alive || view.controller.signal.aborted) own.abort();
+        const current = () => view.alive && mine === generation && !own.signal.aborted;
+        return {
+          signal: own.signal,
+          current,
+          done() {
+            if (mine === generation) finished = true;
+          },
+        };
+      },
+      busy() {
+        return !finished;
+      },
+    };
+  }
+
+  function endView() {
+    if (app.view === null) return;
+    app.view.alive = false;
+    for (const cleanup of app.view.cleanups) cleanup();
+    app.view = null;
+  }
+
+  function currentRoute() {
+    const raw = location.hash.replace(/^#\/?/, "");
+    const parts = raw.split("/").filter((x) => x !== "").map((x) => {
+      try {
+        return decodeURIComponent(x);
+      } catch (error) {
+        return x;
+      }
+    });
+    return parts;
+  }
+
+  function route() {
+    endView();
+    renderTop();
+    if (app.token === null || app.token === "") {
+      showLogin(null);
+      return;
+    }
+    const view = newView();
+    app.view = view;
+    const [section, id] = currentRoute();
+    const target = app.main;
+    if (section === undefined) viewHome(view, target);
+    else if (section === "runs" && id === undefined) viewRuns(view, target);
+    else if (section === "runs") viewRun(view, target, id);
+    else if (section === "agents" && id === undefined) viewAgents(view, target);
+    else if (section === "agents") viewAgent(view, target, id);
+    else if (section === "workflows" && id === undefined) viewWorkflows(view, target);
+    else if (section === "workflows") viewWorkflow(view, target, id);
+    else mount(target, h("div", { class: "panel" }, h("h1", null, "Not found"), h("p", null, "No page here. ", h("a", { href: "#/" }, "Go home"), ".")));
+  }
+
+  function renderTop() {
+    if (app.top === null) return;
+    const [section] = currentRoute();
+    const link = (href, label, name) => h("a", { href, class: section === name ? "current" : null }, label);
+    const signedIn = app.token !== null && app.token !== "";
+    const state = signedIn ? app.connection : "signed out";
+    mount(app.top,
+      h("span", { class: "brand" }, "Runwright"),
+      h("nav", null, link("#/", "Home", undefined), link("#/runs", "Runs", "runs"), link("#/agents", "Agents", "agents"), link("#/workflows", "Workflows", "workflows")),
+      h("span", { class: "spacer" }),
+      h("span", { class: "conn " + (state === "online" ? "online" : state === "offline" ? "offline" : ""), role: "status" }, state),
+      signedIn ? h("button", { type: "button", on: { click: () => signOut("Signed out.") } }, "Sign out") : null);
+  }
+
+  function showLogin(message) {
+    endView();
+    renderTop();
+    const input = h("input", { type: "password", id: "token-input", autocomplete: "off", placeholder: "Token", "aria-label": "Token" });
+    const status = h("div", null, message ? h("div", { class: message === "Signed out." ? "notice" : "error" }, message) : null);
+    const button = h("button", { type: "submit", class: "primary" }, "Sign in");
+    const form = h("form", { on: { submit: (e) => {
+      e.preventDefault();
+      const token = input.value.trim();
+      if (token === "") return;
+      act(button, status, async () => {
+        storeToken(token);
+        try {
+          await api("GET", "/v1/runs?limit=1");
+        } catch (error) {
+          if (!(error instanceof ApiError && error.status === 401)) storeToken(null);
+          throw error;
+        }
+        route();
+      });
+    } } },
+    h("label", { for: "token-input" }, "Token"), h("div", { class: "row" }, input, button));
+    mount(app.main, h("div", { class: "panel login" }, h("h1", null, "Sign in"),
+      h("p", { class: "muted" }, "Paste the server token. The CLI prints a link that signs you in, and the token file is in the data directory (",
+        h("code", null, "~/.runwright/token"), "). The token stays in this tab only."), form, status));
+  }
+
+  // ---------------------------------------------------------------- home
+  function makePanel(title) {
+    const body = h("div", null, h("div", { class: "muted small" }, "Loading…"));
+    const root = h("section", { class: "panel", "aria-label": title }, h("h2", null, title), body);
+    const panel = { root, body, dirty: false, key: null };
+    root.addEventListener("input", () => {
+      panel.dirty = true;
+    });
+    return panel;
+  }
+
+  /**
+   * Replaces a panel's content unless a person is typing in it, or (for panels with controls, given a `key` of the
+   * data shown) unless the data is unchanged, so a refresh never swaps a control out from under a click.
+   */
+  function fill(panel, force, key, build) {
+    const active = document.activeElement;
+    const typing = active !== null && active !== undefined && /^(INPUT|TEXTAREA|SELECT)$/.test(str(active.tagName)) && panel.root.contains(active);
+    if (!force && (panel.dirty || typing || (key !== null && key === panel.key))) return;
+    panel.dirty = false;
+    panel.key = key;
+    mount(panel.body, build());
+  }
+
+  function runsTable(runs, withError) {
+    return table(
+      withError ? ["Run", "Agent", "Error", "Finished"] : ["Run", "Agent", "Status", "Cost", "Created"],
+      runs.map((run) => withError
+        ? [runLink(run.id), agentLink(run.agentId), h("span", { class: "error" }, str(obj(run.error).code) + ": " + excerpt(obj(run.error).message, 200)), age(run.finishedAt)]
+        : [runLink(run.id), agentLink(run.agentId), statusBadge(run.status), costOfRun(run), age(run.createdAt)]),
+      withError ? "No failed runs" : "Nothing is running");
+  }
+
+  function dayKey(ms) {
+    return new Date(ms).toISOString().slice(0, 10);
+  }
+
+  function costChart(days) {
+    const w = 18;
+    const gap = 6;
+    const top = 8;
+    const chartH = 80;
+    const width = days.length * (w + gap) + gap;
+    const height = top + chartH + 16;
+    const max = days.reduce((m, d) => Math.max(m, d.costMicros), 0);
+    const bars = days.map((d, i) => {
+      const barH = max > 0 ? Math.max(d.costMicros > 0 ? 2 : 0, Math.round((d.costMicros / max) * chartH)) : 0;
+      const x = gap + i * (w + gap);
+      return h("svg:g", null,
+        h("svg:rect", { class: "bar" + (d.unknownCostCalls > 0 ? " partial" : ""), x, y: top + chartH - barH, width: w, height: barH, rx: 2 },
+          h("svg:title", null, d.key + ": " + formatCost(d.costMicros, d.unknownCostCalls))),
+        h("svg:text", { x: x + w / 2, y: height - 3, "text-anchor": "middle" }, d.key.slice(8)));
+    });
+    return h("svg:svg", { class: "chart", viewBox: "0 0 " + width + " " + height, role: "img", "aria-label": "Cost by day, last 14 days" },
+      h("svg:line", { class: "axis", x1: 0, y1: top + chartH + 0.5, x2: width, y2: top + chartH + 0.5 }), bars);
+  }
+
+  function usageTable(rows, label) {
+    return table([label, "Runs", "Calls", "Tokens in", "Tokens out", "Cost"],
+      rows.map((r) => [str(r.key), formatNumber(r.runs), formatNumber(r.calls), formatNumber(r.inputTokens), formatNumber(r.outputTokens), formatCost(r.costMicros, r.unknownCostCalls)]),
+      "No usage yet");
+  }
+
+  /** The home page loads open pendings a page at a time, at most NEEDS_CAP of them (the oldest first). */
+  const NEEDS_PAGE = 200;
+  const NEEDS_CAP = 2000;
+
+  /** Every open pending up to NEEDS_CAP, following nextCursor; `more` says pendings past the cap are waiting. */
+  async function loadOpenPendings(signal) {
+    const list = [];
+    let cursor = null;
+    for (;;) {
+      const res = await api("GET", "/v1/pendings" + query({ status: "open", limit: NEEDS_PAGE, cursor }), { signal });
+      const page = arr(res.data.pendings);
+      for (const pending of page) list.push(pending);
+      const next = typeof res.data.nextCursor === "string" ? res.data.nextCursor : null;
+      if (next === null) return { list, more: false };
+      if (list.length >= NEEDS_CAP) return { list: list.slice(0, NEEDS_CAP), more: true };
+      if (next === cursor || page.length === 0) throw new Error("the server's pages of pendings do not advance");
+      cursor = next;
+    }
+  }
+
+  /** A line under a home panel whose list is one page of a longer one. */
+  function morePage(res, text) {
+    return typeof res.data.nextCursor === "string" ? h("div", { class: "muted small" }, text, " ", h("a", { href: "#/runs" }, "All runs")) : null;
+  }
+
+  function viewHome(view, target) {
+    const needs = makePanel("Needs you");
+    const failed = makePanel("Failed");
+    const running = makePanel("Running");
+    const cost = makePanel("Cost");
+    mount(target, h("div", { class: "grid" }, needs.root, running.root, failed.root, cost.root));
+    // One sequencer per panel: a forced reload (after an action) supersedes a pending one; a timer tick does not.
+    const guard = (panel, fn) => {
+      const loads = latestOnly(view);
+      return async (force) => {
+        if (force !== true && loads.busy()) return;
+        const ticket = loads.begin();
+        try {
+          await fn(force === true, ticket);
+        } catch (error) {
+          if (!ticket.current() || (error instanceof ApiError && error.status === 401)) return;
+          fill(panel, true, null, () => errorBox(error));
+        } finally {
+          ticket.done();
+        }
+      };
+    };
+    const loadNeeds = guard(needs, async (force, ticket) => {
+      const signal = ticket.signal;
+      const [pendings, held] = await Promise.all([
+        loadOpenPendings(signal),
+        api("GET", "/v1/learning" + query({ status: "held" }), { signal }),
+      ]);
+      if (!ticket.current()) return;
+      const list = pendings.list;
+      const items = arr(held.data.items);
+      const after = () => loadNeeds(true);
+      fill(needs, force, JSON.stringify([list, pendings.more, items]), () => [
+        pendings.more ? h("div", { class: "notice" }, "Showing the oldest " + NEEDS_CAP + "; more are waiting.") : null,
+        list.length === 0 && items.length === 0 ? empty("Nothing needs you") : null,
+        list.map((p) => pendingCard(p, after, true)),
+        items.length > 0 ? h("h3", null, "Learning held for review") : null,
+        items.map((item) => h("div", { class: "pending" },
+          h("div", { class: "head" }, h("span", { class: "badge" }, "held " + str(item.kind)), h("strong", null, str(item.title))),
+          h("div", { class: "muted small" }, "agent ", agentLink(item.agentId), " · ", str(item.name), " v" + str(item.version),
+            item.sourceRunId ? [" · from run ", runLink(item.sourceRunId)] : null),
+          h("details", null, h("summary", null, "Body"), h("pre", null, str(item.body))),
+          learningActions(item, after)))]);
+    });
+    const loadFailed = guard(failed, async (force, ticket) => {
+      const res = await api("GET", "/v1/runs" + query({ status: "failed", limit: 20 }), { signal: ticket.signal });
+      if (ticket.current()) fill(failed, force, null, () => [runsTable(arr(res.data.runs), true), morePage(res, "The 20 most recent failures.")]);
+    });
+    const loadRunning = guard(running, async (force, ticket) => {
+      const res = await api("GET", "/v1/runs" + query({ status: "running,queued,waiting,paused", limit: 50 }), { signal: ticket.signal });
+      if (ticket.current()) fill(running, force, null, () => [runsTable(arr(res.data.runs), false), morePage(res, "The newest 50 of more.")]);
+    });
+    const loadCost = guard(cost, async (force, ticket) => {
+      const signal = ticket.signal;
+      const today = Date.parse(dayKey(Date.now()) + "T00:00:00Z");
+      const from = today - 13 * 86400000;
+      const [byDay, byAgent, byModel] = await Promise.all([
+        api("GET", "/v1/usage" + query({ groupBy: "day", from }), { signal }),
+        api("GET", "/v1/usage" + query({ groupBy: "agent" }), { signal }),
+        api("GET", "/v1/usage" + query({ groupBy: "model" }), { signal }),
+      ]);
+      if (!ticket.current()) return;
+      const dayRows = new Map(arr(byDay.data.rows).map((r) => [str(r.key), r]));
+      const days = [];
+      for (let i = 0; i < 14; i++) {
+        const key = dayKey(from + i * 86400000);
+        const r = obj(dayRows.get(key));
+        days.push({ key, costMicros: typeof r.costMicros === "number" ? r.costMicros : 0, unknownCostCalls: typeof r.unknownCostCalls === "number" ? r.unknownCostCalls : 0 });
+      }
+      const dayList = [...dayRows.values()].reverse();
+      fill(cost, force, null, () => [
+        h("h3", null, "By day (last 14 days, UTC)"), dayList.length > 0 ? costChart(days) : null, usageTable(dayList, "Day"),
+        h("h3", null, "By agent"), usageTable(arr(byAgent.data.rows), "Agent"),
+        h("h3", null, "By model"), usageTable(arr(byModel.data.rows), "Model")]);
+    });
+    const refresh = () => {
+      loadNeeds(false);
+      loadFailed(false);
+      loadRunning(false);
+      loadCost(false);
+    };
+    refresh();
+    view.every(REFRESH_MS, refresh);
+  }
+
+  // ---------------------------------------------------------------- runs list
+  function viewRuns(view, target) {
+    const select = h("select", { "aria-label": "Status filter" }, h("option", { value: "" }, "All statuses"), RUN_STATUSES.map((s) => h("option", { value: s }, s)));
+    const tbody = h("tbody");
+    const status = h("div");
+    const more = h("button", { type: "button", hidden: true }, "Load more");
+    let cursor = null;
+    // The filter and "Load more" share one sequencer: a filter change supersedes a pending page.
+    const loads = latestOnly(view);
+    const load = async (reset) => {
+      const ticket = loads.begin();
+      const filter = select.value;
+      if (reset) {
+        cursor = null;
+        mount(tbody);
+        more.hidden = true;
+      }
+      try {
+        const res = await api("GET", "/v1/runs" + query({ status: filter, limit: 50, cursor }), { signal: ticket.signal });
+        if (!ticket.current()) return;
+        const runs = arr(res.data.runs);
+        for (const run of runs) {
+          tbody.appendChild(h("tr", null,
+            h("td", null, runLink(run.id)), h("td", null, agentLink(run.agentId)), h("td", null, statusBadge(run.status)),
+            h("td", null, costOfRun(run)), h("td", { class: "hide-narrow" }, formatNumber(obj(run.usage).toolCalls)),
+            h("td", { class: "hide-narrow" }, formatDate(run.createdAt))));
+        }
+        cursor = typeof res.data.nextCursor === "string" ? res.data.nextCursor : null;
+        more.hidden = cursor === null;
+        mount(status, reset && runs.length === 0 ? empty("No runs" + (filter ? " with status " + filter : "")) : null);
+      } catch (error) {
+        if (ticket.current()) mount(status, errorBox(error));
+      } finally {
+        ticket.done();
+      }
+    };
+    select.addEventListener("change", () => load(true));
+    more.addEventListener("click", () => act(more, status, () => load(false)));
+    mount(target, h("section", { class: "panel" }, h("h1", null, "Runs"), h("div", { class: "row" }, "Status ", select),
+      h("div", { class: "table-wrap" }, h("table", null,
+        h("thead", null, h("tr", null, ["Run", "Agent", "Status", "Cost"].map((x) => h("th", null, x)),
+          h("th", { class: "hide-narrow" }, "Tool calls"), h("th", { class: "hide-narrow" }, "Created"))), tbody)),
+      status, more));
+    load(true);
+  }
+
+  // ---------------------------------------------------------------- one run
+  function runHeader(run) {
+    const u = obj(run.usage);
+    return kv([
+      ["Status", statusBadge(run.status)],
+      ["Agent", [agentLink(run.agentId), " revision " + str(run.revision)]],
+      ["Cost", formatCost(u.costMicros, u.costUnknown === true)],
+      ["Tokens", formatNumber(u.inputTokens) + " in / " + formatNumber(u.outputTokens) + " out" +
+        (u.cacheReadTokens || u.cacheWriteTokens ? " (cache " + formatNumber(u.cacheReadTokens) + " read, " + formatNumber(u.cacheWriteTokens) + " written)" : "")],
+      ["Tool calls", formatNumber(u.toolCalls)],
+      ["Turns", formatNumber(u.turns)],
+      ["Limits", describeLimits(run.limits)],
+      ["Created", formatDate(run.createdAt) + (run.finishedAt ? " · finished " + formatDate(run.finishedAt) : "")],
+      run.error ? ["Error", h("span", { class: "error" }, str(obj(run.error).code) + ": " + str(obj(run.error).message))] : null,
+      run.trigger ? ["Trigger", str(obj(run.trigger).kind) + " " + str(obj(run.trigger).id)] : null,
+      ["Message", excerpt(obj(run.input).message, 400) || "–"],
+    ].filter((x) => x !== null));
+  }
+
+  /** A whole number typed into an input: null when empty, NaN when it is not a whole number from 0. */
+  function typedWhole(text) {
+    const trimmed = String(text === undefined || text === null ? "" : text).trim();
+    if (trimmed === "") return null;
+    const value = Number(trimmed);
+    return Number.isInteger(value) && value >= 0 ? value : NaN;
+  }
+
+  /**
+   * The controls of a run that is not finished, built once per run page: `update(run)` is called after every load
+   * of the run. The buttons follow the run's status. Each limit control compares against the loaded run's limits
+   * (the baseline, read when the form is submitted); a control the person has not edited since it was built shows
+   * the loaded value, one they edited keeps what they typed. An edit stops counting as one on submit and when the
+   * loaded value equals what was typed.
+   */
+  function runControls(runId, after) {
+    const status = h("div");
+    const path = "/v1/runs/" + enc(runId);
+    const command = (button, suffix, body) => act(button, status, async () => {
+      await api("POST", path + suffix, { body });
+      after();
+      return "Sent; a runner applies it shortly.";
+    });
+    const buttons = h("div", { class: "row" });
+    let shownStatus = null;
+    const message = h("input", { type: "text", placeholder: "Message to the run", "aria-label": "Message" });
+    const sendButton = h("button", { type: "submit" }, "Send message");
+    const messageForm = h("form", { class: "row", on: { submit: (e) => {
+      e.preventDefault();
+      if (message.value.trim() === "") return;
+      command(sendButton, "/messages", { text: message.value });
+      message.value = "";
+    } } }, message, sendButton);
+    let baseline = {};
+    const fields = [];
+    const field = (key, input, typed, loaded, shown) => {
+      const f = { key, input, typed, loaded, shown, dirty: false };
+      const edited = () => {
+        f.dirty = true;
+      };
+      input.addEventListener("input", edited);
+      input.addEventListener("change", edited);
+      fields.push(f);
+      return f;
+    };
+    const capInput = h("input", { type: "number", min: "0", step: "any", placeholder: "none", "aria-label": "Cost cap in US dollars" });
+    const toolsInput = h("input", { type: "number", min: "0", step: "1", placeholder: "none", "aria-label": "Tool-call limit" });
+    const turnsInput = h("input", { type: "number", min: "0", step: "1", placeholder: "none", "aria-label": "Turn limit" });
+    const unpriced = h("input", { type: "checkbox", id: "run-unpriced" });
+    const loadedNumber = (value) => (typeof value === "number" ? value : null);
+    const numberText = (value) => (value === null ? "" : String(value));
+    field("maxCostMicros", capInput, () => usdToMicros(capInput.value), loadedNumber, (value) => (value === null ? "" : microsToUsdInput(value)));
+    field("maxToolCalls", toolsInput, () => typedWhole(toolsInput.value), loadedNumber, numberText);
+    field("maxTurns", turnsInput, () => typedWhole(turnsInput.value), loadedNumber, numberText);
+    field("allowUnpriced", unpriced, () => unpriced.checked === true, (value) => value === true, null);
+    const show = (f, value) => {
+      if (f.shown === null) f.input.checked = value;
+      else f.input.value = f.shown(value);
+    };
+    const raise = h("button", { type: "submit" }, "Raise limits");
+    const limitsForm = h("form", { class: "row", on: { submit: (e) => {
+      e.preventDefault();
+      const body = {};
+      for (const f of fields) {
+        const typed = f.typed();
+        const loaded = f.loaded(baseline[f.key]);
+        // An empty number field or a value that is not a whole number sends nothing for that limit.
+        if (typed === null || Number.isNaN(typed) || typed === loaded) continue;
+        body[f.key] = typed;
+      }
+      if (Object.keys(body).length === 0) {
+        mount(status, h("div", { class: "error" }, "Nothing changed."));
+        return;
+      }
+      for (const f of fields) f.dirty = false;
+      command(raise, "/limits", body);
+    } } }, "Cap $", capInput, "Tool calls", toolsInput, "Turns", turnsInput, h("label", { for: "run-unpriced" }, unpriced, " allow unpriced"), raise);
+    const root = h("div", null, buttons, messageForm, limitsForm, status);
+    const update = (run) => {
+      baseline = obj(run.limits);
+      for (const f of fields) {
+        const loaded = f.loaded(baseline[f.key]);
+        if (f.dirty && f.typed() === loaded) f.dirty = false;
+        if (!f.dirty) show(f, loaded);
+      }
+      if (run.status === shownStatus) return;
+      shownStatus = run.status;
+      const pause = h("button", { type: "button", disabled: run.status === "paused", on: { click: () => command(pause, "/pause", {}) } }, "Pause");
+      const resume = h("button", { type: "button", disabled: run.status !== "paused", on: { click: () => command(resume, "/resume", {}) } }, "Resume");
+      const cancel = h("button", { type: "button", class: "danger", on: { click: () => command(cancel, "/cancel", {}) } }, "Cancel");
+      mount(buttons, pause, resume, cancel);
+    };
+    return { root, update };
+  }
+
+  /** Backlog from the timeline endpoint, then the live SSE stream over fetch, reconnecting with Last-Event-ID. */
+  function startTimeline(view, runId, tbody, live, onRecord) {
+    const signal = view.controller.signal;
+    const streaming = new Map();
+    let last = 0;
+    const add = (record) => {
+      const r = obj(record);
+      if (typeof r.seq !== "number" || r.seq <= last) return;
+      last = r.seq;
+      if (typeof r.key === "string" && endsStream(r.type)) {
+        const row = streaming.get(r.key);
+        if (row) {
+          row.row.remove();
+          streaming.delete(r.key);
+        }
+      }
+      tbody.appendChild(h("tr", { "data-seq": r.seq },
+        h("td", { class: "mono" }, String(r.seq)), h("td", { class: "mono hide-narrow" }, formatTime(r.ts)),
+        h("td", { class: typeClass(r.type) }, str(r.type)), h("td", { class: "mono hide-narrow" }, str(r.key)),
+        h("td", { class: "summary" }, summarize(r))));
+      onRecord(r);
+    };
+    const delta = (data) => {
+      const key = str(data.key);
+      let entry = streaming.get(key);
+      if (!entry) {
+        const cell = h("td", { class: "summary" });
+        const row = h("tr", { class: "streaming" }, h("td", null, "…"), h("td", { class: "hide-narrow" }), h("td", null, "streaming"),
+          h("td", { class: "mono hide-narrow" }, key), cell);
+        entry = { row, cell, text: "" };
+        streaming.set(key, entry);
+        tbody.appendChild(row);
+      }
+      entry.text += str(data.text);
+      mount(entry.cell, entry.text.length > 2000 ? "…" + entry.text.slice(-2000) : entry.text);
+    };
+    const setLive = (text) => mount(live, text);
+    const run = async () => {
+      try {
+        let after = 0;
+        for (;;) {
+          const res = await api("GET", "/v1/runs/" + enc(runId) + "/timeline" + query({ after, limit: 1000 }), { signal });
+          if (!view.alive) return;
+          if (res.data.archived === true) {
+            setLive("This run's journal was archived; the timeline is no longer on the server.");
+            return;
+          }
+          arr(res.data.records).forEach(add);
+          if (typeof res.data.nextAfter !== "number") break;
+          after = res.data.nextAfter;
+        }
+      } catch (error) {
+        if (view.alive && !signal.aborted) setLive("Could not load the timeline: " + str(error && error.message));
+        return;
+      }
+      let delay = 500;
+      while (view.alive && !signal.aborted) {
+        let ended = false;
+        try {
+          const res = await api("GET", "/v1/runs/" + enc(runId) + "/events", { raw: true, signal, headers: { Accept: "text/event-stream", "Last-Event-ID": String(last) } });
+          setLive("live");
+          delay = 500;
+          const reader = res.body.getReader();
+          const decoder = createSseDecoder();
+          while (!ended) {
+            const chunk = await reader.read();
+            if (chunk.done) break;
+            for (const event of decoder.push(chunk.value)) {
+              if (event.event === "end") {
+                ended = true;
+                let status = "";
+                try {
+                  status = str(obj(JSON.parse(event.data)).status);
+                } catch (error) {
+                  status = "";
+                }
+                setLive("finished" + (status ? ": " + status : ""));
+                onRecord(null);
+              } else if (event.event === "delta") {
+                try {
+                  delta(obj(JSON.parse(event.data)));
+                } catch (error) {
+                  continue;
+                }
+              } else {
+                try {
+                  add(JSON.parse(event.data));
+                } catch (error) {
+                  continue;
+                }
+              }
+            }
+          }
+          if (ended) {
+            reader.cancel().catch(() => undefined);
+            return;
+          }
+        } catch (error) {
+          if (!view.alive || signal.aborted) return;
+          if (error instanceof ApiError && (error.status === 401 || error.status === 404)) {
+            setLive(error.message);
+            return;
+          }
+        }
+        if (!view.alive || signal.aborted) return;
+        setLive("reconnecting…");
+        await sleep(delay, signal);
+        delay = Math.min(delay * 2, 10000);
+      }
+    };
+    run();
+  }
+
+  function filePath(runId, path) {
+    return "/v1/runs/" + enc(runId) + "/files/" + str(path).split("/").map(enc).join("/");
+  }
+
+  async function downloadFile(runId, path, signal) {
+    const res = await api("GET", filePath(runId, path), { raw: true, signal });
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = str(path).split("/").pop() || "file";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
+  /** Files per request of the run's file list (the server's maximum). */
+  const FILES_PAGE = 1000;
+
+  /**
+   * At most `limit` bytes of a response body, decoded as UTF-8: the stream is read chunk by chunk and cancelled
+   * once `limit` bytes are in, so a large file costs no more than what is shown. A character cut at the limit is
+   * left out rather than shown as a replacement character.
+   */
+  async function readTextPrefix(res, limit) {
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let text = "";
+    let total = 0;
+    let ended = false;
+    try {
+      while (total < limit) {
+        const chunk = await reader.read();
+        if (chunk.done) {
+          ended = true;
+          break;
+        }
+        const bytes = chunk.value.length > limit - total ? chunk.value.subarray(0, limit - total) : chunk.value;
+        total += bytes.length;
+        text += decoder.decode(bytes, { stream: true });
+      }
+    } finally {
+      if (!ended) reader.cancel().catch(() => undefined);
+    }
+    if (ended) text += decoder.decode();
+    return { text, cut: !ended, bytes: total };
+  }
+
+  function filesSection(view, runId) {
+    const list = h("div", null, h("div", { class: "muted small" }, "Loading…"));
+    const viewer = h("div");
+    const status = h("div");
+    const listing = latestOnly(view);
+    // A second "View" supersedes the first: only the newest selection may fill the viewer.
+    const viewing = latestOnly(view);
+    const sizes = new Map();
+    const showFile = (button, path) => {
+      const ticket = viewing.begin();
+      return act(button, status, async () => {
+        try {
+          const res = await api("GET", filePath(runId, path), { raw: true, signal: ticket.signal });
+          if (!ticket.current()) {
+            res.body.cancel().catch(() => undefined);
+            return;
+          }
+          const type = str(res.headers.get("content-type"));
+          if (!(type.startsWith("text/") || type.startsWith("application/json"))) {
+            await res.body.cancel().catch(() => undefined);
+            await downloadFile(runId, path, ticket.signal);
+            return "Not a text file; downloaded.";
+          }
+          const declared = Number(res.headers.get("content-length"));
+          const size = Number.isFinite(declared) && res.headers.get("content-length") !== null ? declared : sizes.get(path);
+          const prefix = await readTextPrefix(res, TEXT_PREVIEW_BYTES);
+          if (!ticket.current()) return;
+          const partial = typeof size === "number" ? size > prefix.bytes : prefix.cut;
+          mount(viewer, h("h3", null, str(path)),
+            partial ? h("div", { class: "muted small" }, "Showing the first 200 KB of " + (typeof size === "number" ? formatNumber(size) : "more") + " bytes.") : null,
+            h("pre", null, prefix.text));
+        } catch (error) {
+          if (!ticket.current()) return;
+          throw error;
+        } finally {
+          ticket.done();
+        }
+      });
+    };
+    const load = async () => {
+      const ticket = listing.begin();
+      try {
+        const files = [];
+        let cursor = null;
+        for (;;) {
+          const res = await api("GET", "/v1/runs/" + enc(runId) + "/files" + query({ limit: FILES_PAGE, cursor }), { signal: ticket.signal });
+          if (!ticket.current()) return;
+          const page = arr(res.data.files);
+          for (const f of page) files.push(f);
+          const next = typeof res.data.nextCursor === "string" ? res.data.nextCursor : null;
+          if (next === null) break;
+          if (next === cursor || page.length === 0) throw new Error("the server's pages of files do not advance");
+          cursor = next;
+        }
+        sizes.clear();
+        for (const f of files) sizes.set(str(f.path), f.size);
+        mount(list, table(["Path", "Size", "Modified", ""], files.map((f) => {
+          const viewButton = h("button", { type: "button", on: { click: () => showFile(viewButton, f.path) } }, "View");
+          const downloadButton = h("button", { type: "button", on: { click: () => act(downloadButton, status, () => downloadFile(runId, f.path, view.controller.signal)) } }, "Download");
+          return [h("span", { class: "mono" }, str(f.path)), formatNumber(f.size) + " B", formatDate(f.modifiedAt), h("span", { class: "row" }, viewButton, downloadButton)];
+        }), "No files in the workspace"));
+      } catch (error) {
+        if (ticket.current()) mount(list, errorBox(error));
+      } finally {
+        ticket.done();
+      }
+    };
+    const refresh = h("button", { type: "button", on: { click: () => load() } }, "Refresh");
+    load();
+    return h("section", { class: "panel" }, h("div", { class: "row" }, h("h2", null, "Files"), refresh), list, status, viewer);
+  }
+
+  function learningGivenSection(view, runId) {
+    const body = h("div", null, h("div", { class: "muted small" }, "Loading…"));
+    api("GET", "/v1/runs/" + enc(runId) + "/learning", { signal: view.controller.signal }).then((res) => {
+      if (!view.alive) return;
+      mount(body, table(["Item", "Version", "Mode", "Opened"], arr(res.data.uses).map((u) => [h("span", { class: "mono" }, str(u.itemId)), str(u.version), str(u.mode), u.opened === true ? "yes" : "no"]), "No learning was given to this run"));
+    }).catch((error) => {
+      if (view.alive) mount(body, errorBox(error));
+    });
+    return h("section", { class: "panel" }, h("h2", null, "Learning given"), body);
+  }
+
+  function viewRun(view, target, runId) {
+    const header = h("div", null, h("div", { class: "muted small" }, "Loading…"));
+    const controls = h("div");
+    const pendingsPanel = makePanel("Needs you");
+    const tbody = h("tbody");
+    const live = h("span", { class: "muted small", role: "status" }, "connecting…");
+    let timer = null;
+    let lastStatus = null;
+    // The controls of the run while it is not finished: built once, then updated by every load.
+    let runControlsView = null;
+    // Reloads after an action or a timeline record supersede a pending one; a timer tick leaves it alone.
+    const loads = latestOnly(view);
+    // A forced reload that is superseded passes its force on, so the load that paints still rebuilds everything.
+    let forcePending = false;
+    const loadRun = async (requested, tick) => {
+      if (tick === true && loads.busy()) return;
+      forcePending = forcePending || requested === true;
+      const force = forcePending;
+      const ticket = loads.begin();
+      try {
+        const res = await api("GET", "/v1/runs/" + enc(runId), { signal: ticket.signal });
+        if (!ticket.current()) return;
+        forcePending = false;
+        const run = obj(res.data.run);
+        const pendings = arr(res.data.pendings);
+        mount(header, runHeader(run));
+        if (run.status === "completed" || run.status === "failed" || run.status === "cancelled") {
+          if (runControlsView !== null || lastStatus === null) mount(controls, h("div", { class: "muted" }, "This run is finished."));
+          runControlsView = null;
+        } else {
+          if (runControlsView === null) {
+            runControlsView = runControls(runId, () => loadRun(true));
+            mount(controls, runControlsView.root);
+          }
+          runControlsView.update(run);
+        }
+        lastStatus = run.status;
+        fill(pendingsPanel, force, JSON.stringify(pendings), () => pendings.length === 0 ? empty("Nothing needs you on this run") : pendings.map((p) => pendingCard(p, () => loadRun(true), false)));
+      } catch (error) {
+        if (ticket.current()) mount(header, errorBox(error));
+      } finally {
+        ticket.done();
+      }
+    };
+    const soon = () => {
+      if (timer !== null) return;
+      timer = setTimeout(() => {
+        timer = null;
+        if (view.alive) loadRun(false);
+      }, 300);
+    };
+    view.cleanups.push(() => {
+      if (timer !== null) clearTimeout(timer);
+    });
+    mount(target,
+      h("h1", null, "Run ", h("span", { class: "mono" }, runId)),
+      h("section", { class: "panel" }, header, h("h3", null, "Controls"), controls),
+      pendingsPanel.root,
+      h("section", { class: "panel" }, h("div", { class: "row" }, h("h2", null, "Timeline"), live),
+        h("div", { class: "timeline table-wrap" }, h("table", null,
+          h("thead", null, h("tr", null, h("th", null, "Seq"), h("th", { class: "hide-narrow" }, "Time"), h("th", null, "Type"), h("th", { class: "hide-narrow" }, "Key"), h("th", null, "Summary"))),
+          tbody))),
+      filesSection(view, runId),
+      learningGivenSection(view, runId));
+    loadRun(true);
+    view.every(REFRESH_MS, () => {
+      if (lastStatus !== "completed" && lastStatus !== "failed" && lastStatus !== "cancelled") loadRun(false, true);
+    });
+    startTimeline(view, runId, tbody, live, soon);
+  }
+
+  // ---------------------------------------------------------------- agents
+  function viewAgents(view, target) {
+    const body = h("div", null, h("div", { class: "muted small" }, "Loading…"));
+    mount(target, h("section", { class: "panel" }, h("h1", null, "Agents"), body));
+    api("GET", "/v1/agents", { signal: view.controller.signal }).then((res) => {
+      if (!view.alive) return;
+      mount(body, table(["Agent", "Name", "Model", "Revision", "Learning", "Updated"], arr(res.data.agents).map((entry) => {
+        const agent = obj(obj(entry).agent);
+        const def = obj(obj(entry).definition);
+        const model = obj(def.model);
+        return [agentLink(agent.id), str(def.name), str(model.provider) + " / " + str(model.name), str(agent.currentRevision),
+          def.learning === true ? "on" : "off", formatDate(agent.updatedAt)];
+      }), "No agents yet. Save one with the CLI or the API."));
+    }).catch((error) => {
+      if (view.alive) mount(body, errorBox(error));
+    });
+  }
+
+  function metricsTable(metrics) {
+    const m = obj(metrics);
+    const row = (label, group) => {
+      const g = obj(group);
+      const tokens = typeof g.avgInputTokens === "number" || typeof g.avgOutputTokens === "number"
+        ? formatNumber(Math.round(g.avgInputTokens || 0)) + " in / " + formatNumber(Math.round(g.avgOutputTokens || 0)) + " out" : "–";
+      return [label, formatNumber(g.runs), g.runs > 0 ? formatCost(g.avgCostMicros, g.avgCostMicros === null) : "–", tokens, formatDuration(g.avgDurationMs)];
+    };
+    return table(["", "Runs", "Average cost", "Average tokens", "Average duration"], [row("Before learning", m.before), row("After learning", m.after)], "No metrics");
+  }
+
+  /**
+   * The Learning tab: items and before/after metrics under the tab's ticket. `reload()` (after an action) starts
+   * the tab again only while it is still the one shown; each item's history has its own sequencer, and is shown
+   * only while the tab load that built the item is current.
+   */
+  function learningTab(view, tab, agentId, body) {
+    const ticket = tab.begin();
+    const reload = () => {
+      if (tab.shown() === "Learning") learningTab(view, tab, agentId, body);
+    };
+    const load = async () => {
+      mount(body, h("div", { class: "muted small" }, "Loading…"));
+      try {
+        const [items, metrics] = await Promise.all([
+          api("GET", "/v1/learning" + query({ agentId }), { signal: ticket.signal }),
+          api("GET", "/v1/agents/" + enc(agentId) + "/learning/metrics", { signal: ticket.signal }),
+        ]);
+        if (!ticket.current()) return;
+        const list = arr(items.data.items);
+        const rows = list.map((item) => {
+          const detail = h("div");
+          const histories = latestOnly(view);
+          let open = false;
+          const toggle = h("button", { type: "button", "aria-expanded": "false", on: { click: async () => {
+            open = !open;
+            const history = histories.begin();
+            toggle.setAttribute("aria-expanded", String(open));
+            mount(toggle, open ? "Hide" : "Show");
+            if (!open) {
+              mount(detail);
+              history.done();
+              return;
+            }
+            mount(detail, h("div", { class: "muted small" }, "Loading history…"));
+            try {
+              const res = await api("GET", "/v1/learning/" + enc(item.id) + "/history", { signal: history.signal });
+              if (!history.current() || !ticket.current()) return;
+              mount(detail,
+                item.description ? h("p", null, str(item.description)) : null,
+                h("pre", null, str(item.body)),
+                promotedWorkflowLine(item),
+                learningActions(item, reload),
+                h("h3", null, "History"),
+                table(["Version", "Action", "Status", "By", "Note", "When"], arr(res.data.history).map((e) => [str(e.version), str(e.action), str(e.status), str(e.actor), str(e.note, "–"), formatDate(e.at)]), "No history"));
+            } catch (error) {
+              if (history.current() && ticket.current()) mount(detail, errorBox(error));
+            } finally {
+              history.done();
+            }
+          } } }, "Show");
+          return h("tbody", null,
+            h("tr", null, h("td", null, str(item.kind)), h("td", { class: "mono" }, str(item.name)), h("td", null, str(item.title)),
+              h("td", null, statusBadge(item.status)), h("td", null, "v" + str(item.version)), h("td", null, toggle)),
+            h("tr", null, h("td", { colspan: "6" }, detail)));
+        });
+        mount(body,
+          h("h3", null, "Before and after"), metricsTable(metrics.data.metrics),
+          h("h3", null, "Items"),
+          list.length === 0 ? empty("Nothing learned yet") : h("div", { class: "table-wrap" }, h("table", null,
+            h("thead", null, h("tr", null, ["Kind", "Name", "Title", "Status", "Version", ""].map((x) => h("th", null, x)))), rows)));
+      } catch (error) {
+        if (ticket.current()) mount(body, errorBox(error));
+      } finally {
+        ticket.done();
+      }
+    };
+    load();
+  }
+
+  /** One sequencer for the body of the agent page's tabs; `shown()` names the tab selected last. */
+  function tabSequencer(view) {
+    const loads = latestOnly(view);
+    let selected = null;
+    return {
+      select(name) {
+        selected = name;
+      },
+      shown() {
+        return selected;
+      },
+      begin() {
+        return loads.begin();
+      },
+    };
+  }
+
+  function viewAgent(view, target, agentId) {
+    const body = h("div", null, h("div", { class: "muted small" }, "Loading…"));
+    const tabs = h("div", { class: "tabs", role: "tablist" });
+    const tab = tabSequencer(view);
+    mount(target, h("h1", null, "Agent ", agentId), h("section", { class: "panel" }, tabs, body));
+    api("GET", "/v1/agents/" + enc(agentId), { signal: view.controller.signal }).then((res) => {
+      if (!view.alive) return;
+      const revision = obj(res.data.revision);
+      const agent = obj(res.data.agent);
+      const def = obj(revision.definition);
+      const names = ["Definition", "Revisions", "Learning"];
+      if (def.workflow) names.push("Workflow");
+      const show = (name) => {
+        tab.select(name);
+        mount(tabs, names.map((n) => h("button", { type: "button", role: "tab", "aria-selected": n === name ? "true" : "false", on: { click: () => show(n) } }, n)));
+        if (name === "Definition") {
+          // Synchronous, but it still takes a ticket: that is what keeps a pending tab load from painting over it.
+          tab.begin().done();
+          mount(body, kv([["Name", str(def.name)], ["Current revision", str(agent.currentRevision)], ["Updated", formatDate(agent.updatedAt)],
+            ["Runs", h("a", { href: "#/runs" }, "All runs")]]), h("pre", null, pretty(def)));
+        } else if (name === "Revisions") {
+          revisionsTab(tab.begin(), agentId, body);
+        } else if (name === "Learning") {
+          learningTab(view, tab, agentId, body);
+        } else {
+          const ticket = tab.begin();
+          mount(body, h("div", { class: "muted small" }, "Loading graph…"));
+          // Checked as agent saving checks it: an embedded workflow, which no call reaches by its own name.
+          api("POST", "/v1/workflows/graph", { body: { document: def.workflow, embedded: true }, signal: ticket.signal }).then((g) => {
+            if (ticket.current()) mount(body, graphView(g.data.graph, g.data.mermaid));
+          }).catch((error) => {
+            if (ticket.current()) mount(body, errorBox(error));
+          }).finally(() => ticket.done());
+        }
+      };
+      show("Definition");
+    }).catch((error) => {
+      if (view.alive) mount(body, errorBox(error));
+    });
+  }
+
+  function revisionsTab(ticket, agentId, body) {
+    mount(body, h("div", { class: "muted small" }, "Loading…"));
+    const shown = h("div");
+    api("GET", "/v1/agents/" + enc(agentId) + "/revisions", { signal: ticket.signal }).then((res) => {
+      if (!ticket.current()) return;
+      const revisions = arr(res.data.revisions);
+      mount(body, table(["Revision", "Created", "Hash", ""], revisions.map((r) => {
+        const button = h("button", { type: "button", on: { click: () => mount(shown, h("h3", null, "Revision " + str(r.revision)), h("pre", null, pretty(r.definition))) } }, "Show");
+        return [str(r.revision), formatDate(r.createdAt), h("span", { class: "mono small" }, str(r.definitionHash).slice(0, 12)), button];
+      }), "No revisions"), shown);
+    }).catch((error) => {
+      if (ticket.current()) mount(body, errorBox(error));
+    }).finally(() => ticket.done());
+  }
+
+  // ---------------------------------------------------------------- workflows
+  const KIND_CLASS = /^[a-z_]+$/;
+
+  function graphView(graph, mermaid) {
+    const layout = layoutGraph(graph);
+    const nodes = layout.nodes.map((n) => {
+      const kind = KIND_CLASS.test(n.kind) ? n.kind : "other";
+      const label = n.label.length > 30 ? n.label.slice(0, 29) + "…" : n.label;
+      return h("svg:g", { class: "node", "data-node": n.id },
+        h("svg:rect", { class: "gnode k-" + kind, x: n.x, y: n.y, width: n.width, height: n.height, rx: 6 }),
+        h("svg:text", { class: "kind", x: n.x + 8, y: n.y + 15 }, n.kind),
+        h("svg:text", { x: n.x + 8, y: n.y + 34 }, label),
+        h("svg:title", null, n.kind + " " + n.id + ": " + n.label));
+    });
+    const edges = layout.edges.map((e) => {
+      const kind = KIND_CLASS.test(e.kind) ? e.kind : "other";
+      const midY = (e.y1 + e.y2) / 2;
+      const d = "M " + e.x1 + " " + e.y1 + " C " + e.x1 + " " + midY + ", " + e.x2 + " " + midY + ", " + e.x2 + " " + (e.y2 - 2);
+      const label = e.label !== null ? e.label : e.kind === "next" || e.kind === "contains" ? null : e.kind;
+      return h("svg:g", null,
+        h("svg:path", { class: "edge e-" + kind, d, "marker-end": "url(#rw-arrow)" }, h("svg:title", null, e.kind + (e.label ? ": " + e.label : ""))),
+        label !== null ? h("svg:text", { class: "elabel", x: (e.x1 + e.x2) / 2 + 4, y: midY - 3 }, label.length > 28 ? label.slice(0, 27) + "…" : label) : null);
+    });
+    const svg = h("svg:svg", { class: "graph", width: layout.width, height: layout.height, viewBox: "0 0 " + layout.width + " " + layout.height, role: "img", "aria-label": "Workflow graph" },
+      h("svg:defs", null, h("svg:marker", { id: "rw-arrow", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto" },
+        h("svg:path", { class: "arrow", d: "M 0 0 L 10 5 L 0 10 z" }))),
+      edges, nodes);
+    const kinds = [...new Set(layout.nodes.map((n) => n.kind))];
+    const pre = h("pre", { class: "mono" }, str(mermaid));
+    const copyStatus = h("span", { class: "muted small" });
+    const copy = h("button", { type: "button", on: { click: async () => {
+      try {
+        await navigator.clipboard.writeText(str(mermaid));
+        mount(copyStatus, "Copied.");
+      } catch (error) {
+        mount(copyStatus, "Copy failed; select the text instead.");
+      }
+    } } }, "Copy");
+    return h("div", null,
+      layout.nodes.length === 0 ? empty("The graph has no nodes") : h("div", { class: "graph-wrap" }, svg),
+      h("div", { class: "legend small" }, kinds.map((k) => h("span", { class: "badge" }, k)),
+        h("span", { class: "muted" }, "solid: next / case, dashed: contains / low confidence, thick: sub-workflow call")),
+      h("div", { class: "row" }, h("h3", null, "Mermaid"), copy, copyStatus), pre);
+  }
+
+  function problemsTable(problems) {
+    return table(["Severity", "Path", "Code", "Message"], arr(problems).map((p) => [str(p.severity, "error"), h("span", { class: "mono" }, str(p.path)), str(p.code || p.keyword), str(p.message)]), "No problems");
+  }
+
+  function viewWorkflows(view, target) {
+    const listBody = h("div", null, h("div", { class: "muted small" }, "Loading…"));
+    const textarea = h("textarea", { rows: "14", spellcheck: "false", class: "mono", placeholder: "Paste a runwright.workflow/v1 document (JSON)", "aria-label": "Workflow document" });
+    const output = h("div");
+    // Validate and Graph fill the same output: the newest click wins.
+    const checks = latestOnly(view);
+    const parse = () => {
+      try {
+        return { document: JSON.parse(textarea.value) };
+      } catch (error) {
+        mount(output, h("div", { class: "error" }, "Not valid JSON: " + str(error && error.message)));
+        return null;
+      }
+    };
+    const validate = h("button", { type: "button", class: "primary", on: { click: () => {
+      const parsed = parse();
+      if (parsed === null) return;
+      const ticket = checks.begin();
+      act(validate, output, async () => {
+        try {
+          const res = await api("POST", "/v1/workflows/validate", { body: parsed, signal: ticket.signal });
+          if (!ticket.current()) return;
+          mount(output, res.data.ok === true ? h("div", { class: "notice" }, "Valid.") : h("div", { class: "error" }, "Invalid."), problemsTable(res.data.problems));
+        } catch (error) {
+          if (ticket.current()) throw error;
+        } finally {
+          ticket.done();
+        }
+      });
+    } } }, "Validate");
+    const graph = h("button", { type: "button", on: { click: () => {
+      const parsed = parse();
+      if (parsed === null) return;
+      const ticket = checks.begin();
+      act(graph, output, async () => {
+        try {
+          const res = await api("POST", "/v1/workflows/graph", { body: parsed, signal: ticket.signal });
+          if (!ticket.current()) return;
+          mount(output, graphView(res.data.graph, res.data.mermaid));
+        } catch (error) {
+          if (!ticket.current()) return;
+          if (error instanceof ApiError && arr(obj(error.details).problems).length > 0) {
+            mount(output, h("div", { class: "error" }, error.message), problemsTable(obj(error.details).problems));
+            return;
+          }
+          throw error;
+        } finally {
+          ticket.done();
+        }
+      });
+    } } }, "Graph");
+    mount(target,
+      h("section", { class: "panel" }, h("h1", null, "Workflows"), listBody),
+      h("section", { class: "panel" }, h("h2", null, "Check a document"), textarea, h("div", { class: "row" }, validate, graph), output));
+    api("GET", "/v1/workflows", { signal: view.controller.signal }).then((res) => {
+      if (!view.alive) return;
+      mount(listBody, table(["Name", "Version", "Source", "Saved"], arr(res.data.workflows).map((w) => [
+        h("a", { href: "#/workflows/" + enc(w.name) }, str(w.name)), "v" + str(w.version), str(w.source), formatDate(w.createdAt)]), "No saved workflows"));
+    }).catch((error) => {
+      if (view.alive) mount(listBody, errorBox(error));
+    });
+  }
+
+  function viewWorkflow(view, target, name) {
+    const meta = h("div");
+    const body = h("div", null, h("div", { class: "muted small" }, "Loading…"));
+    mount(target, h("h1", null, "Workflow ", name), h("section", { class: "panel" }, meta, body));
+    const signal = view.controller.signal;
+    Promise.all([api("GET", "/v1/workflows/" + enc(name), { signal }), api("GET", "/v1/workflows/" + enc(name) + "/graph", { signal })]).then(([w, g]) => {
+      if (!view.alive) return;
+      const workflow = obj(w.data.workflow);
+      const doc = obj(workflow.document);
+      mount(meta, kv([["Version", "v" + str(workflow.version)], ["Source", str(workflow.source)], ["Saved", formatDate(workflow.createdAt)],
+        doc.description ? ["Description", str(doc.description)] : null].filter((x) => x !== null)));
+      mount(body, graphView(g.data.graph, g.data.mermaid), h("details", null, h("summary", null, "Document"), h("pre", null, pretty(doc))));
+    }).catch((error) => {
+      if (view.alive) mount(body, errorBox(error));
+    });
+  }
+
+  // ---------------------------------------------------------------- boot
+  function boot() {
+    app.top = document.getElementById("top");
+    app.main = document.getElementById("main");
+    if (location.hash.startsWith(TOKEN_FRAGMENT)) {
+      let token = location.hash.slice(TOKEN_FRAGMENT.length);
+      try {
+        token = decodeURIComponent(token);
+      } catch (error) {
+        token = "";
+      }
+      history.replaceState(null, "", location.pathname + location.search + "#/");
+      if (token !== "") storeToken(token);
+    }
+    app.token = readToken();
+    window.addEventListener("hashchange", route);
+    route();
+  }
+
+  window.RunwrightConsole = Object.freeze({ h, parseSse, createSseParser, createSseDecoder, layoutGraph, formatCost, summarize, typeClass, pendingDetail, endsStream, promotedWorkflowLine });
+  document.addEventListener("DOMContentLoaded", boot);
+})();
+</script>
+</body>
+</html>

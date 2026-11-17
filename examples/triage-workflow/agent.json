@@ -1,0 +1,188 @@
+{
+  "id": "triage",
+  "definition": {
+    "name": "Ticket triage",
+    "instructions": "You triage support tickets: decide whether each one is urgent.",
+    "model": {
+      "provider": "scripted",
+      "name": "scripted-1",
+      "maxOutputTokens": 256,
+      "script": {
+        "variants": [
+          {
+            "when": {
+              "contains": "server is down"
+            },
+            "steps": {
+              "urgent": {
+                "output": {
+                  "value": true,
+                  "confidence": 0.95,
+                  "reason": "Customers cannot log in at all."
+                }
+              }
+            }
+          },
+          {
+            "when": {
+              "contains": "printer"
+            },
+            "steps": {
+              "urgent": {
+                "output": {
+                  "value": false,
+                  "confidence": 0.4,
+                  "reason": "Hard to tell from the ticket alone."
+                }
+              }
+            }
+          }
+        ],
+        "steps": {
+          "review": [
+            {
+              "text": "The printer still prints, it is only noisy: this can wait for the next visit."
+            }
+          ],
+          "review.final": {
+            "output": {
+              "urgent": false
+            }
+          }
+        }
+      }
+    },
+    "tools": [
+      {
+        "name": "write_file"
+      }
+    ],
+    "limits": {
+      "maxCostMicros": 200000,
+      "maxTurns": 20
+    },
+    "learning": false,
+    "workflow": {
+      "format": "runwright.workflow/v1",
+      "name": "triage",
+      "description": "Classify a support ticket; tickets the model is unsure about go to an agent for review.",
+      "schemas": {
+        "Input": {
+          "type": "object",
+          "required": [
+            "ticket"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "ticket": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "Verdict": {
+          "type": "object",
+          "required": [
+            "urgent"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "urgent": {
+              "type": "boolean"
+            }
+          }
+        },
+        "Output": {
+          "type": "object",
+          "required": [
+            "urgent",
+            "route"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "urgent": {
+              "type": "boolean"
+            },
+            "route": {
+              "enum": [
+                "confident",
+                "low_confidence"
+              ]
+            }
+          }
+        }
+      },
+      "input": "Input",
+      "output": "Output",
+      "root": {
+        "id": "main",
+        "kind": "sequence",
+        "steps": [
+          {
+            "id": "urgent",
+            "kind": "decide",
+            "question": "Is this support ticket urgent?\n\n{{input.ticket}}",
+            "decision": {
+              "type": "yes_no"
+            },
+            "lowConfidence": {
+              "below": 0.7,
+              "run": {
+                "id": "review",
+                "kind": "agent",
+                "message": "Read this ticket carefully and decide whether it is urgent: {{input.ticket}}",
+                "maxTurns": 3,
+                "output": "Verdict",
+                "tools": []
+              },
+              "value": {
+                "$ref": "fallback.data.urgent"
+              }
+            }
+          },
+          {
+            "id": "file",
+            "kind": "branch",
+            "on": {
+              "$ref": "steps.urgent.value"
+            },
+            "cases": [
+              {
+                "when": true,
+                "run": {
+                  "id": "write_urgent",
+                  "kind": "tool",
+                  "tool": "write_file",
+                  "args": {
+                    "path": "urgent.txt",
+                    "content": "URGENT: {{input.ticket}}\n"
+                  }
+                }
+              },
+              {
+                "when": false,
+                "run": {
+                  "id": "write_routine",
+                  "kind": "tool",
+                  "tool": "write_file",
+                  "args": {
+                    "path": "routine.txt",
+                    "content": "routine: {{input.ticket}}\n"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "result": {
+        "urgent": {
+          "$ref": "steps.urgent.value"
+        },
+        "route": {
+          "$ref": "steps.urgent.route"
+        }
+      }
+    }
+  }
+}
